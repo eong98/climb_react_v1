@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import type {
@@ -16,13 +16,15 @@ import {
   GYM_TYPE_OPTIONS,
 } from '../../components/ts/Gym';
 
-import { AlertModal, Loading, PageHeader } from '../../components/ui';
+import type { ThumbUploaderHandle } from '../../components/ui';
+import { AlertModal, Loading, PageHeader, ThumbUploader } from '../../components/ui';
 
 import { useAlert } from '../../hooks/useAlert';
 import { useTab } from '../../hooks/useTab';
 import {
   axiosInstance,
   getErrorMessage,
+  getGymImageUrl,
   toLevelClass,
   toLevelLabel,
   toSortOrder,
@@ -169,6 +171,10 @@ export default function AdminGymForm() {
   /** 탭 상태 — URL 쿼리(?tab=)에 둬서 새로고침해도 보던 탭이 유지됩니다 */
   const { tab, changeTab } = useTab('basic');
 
+  /** 대표 이미지(THUMB) 업로더 핸들 — 저장 후 암장번호로 업로드하기 위해 ref로 연결합니다 */
+  const thumbRef = useRef<ThumbUploaderHandle>(null);
+  const [thumbInitialUrl, setThumbInitialUrl] = useState('');
+
   const [form, setForm] = useState<GymFormState>(EMPTY_FORM);
   const [hours, setHours] = useState<GymHourType[]>(emptyHours);
   const [grades, setGrades] = useState<GymGradeType[]>([]);
@@ -242,6 +248,7 @@ export default function AdminGymForm() {
           bestSeason: gym.bestSeason ?? '',
           boltInfo: gym.boltInfo ?? '',
         });
+        setThumbInitialUrl(getGymImageUrl(gym.thumb));
 
         /*
           영업시간은 7건이 다 있으리라 보장할 수 없습니다(예전에 일부만 저장했을 수 있음).
@@ -491,7 +498,21 @@ export default function AdminGymForm() {
         throw new Error('저장된 암장번호를 확인할 수 없습니다.');
       }
 
-      /* ---------- ② 영업시간 일괄 저장 ----------
+      /* ---------- ② 대표 이미지(THUMB) 업로드 ----------
+         목록 카드·검색 결과·지도 팝업·상세 히어로가 모두 이 값 하나만 봅니다.
+         새로 고른 파일이 있을 때만 호출하고, 실패해도 암장 저장 자체는 이미
+         끝났으므로 경고만 띄우고 계속 진행합니다. */
+      let thumbOk = true;
+      if (thumbRef.current?.hasFile()) {
+        try {
+          await thumbRef.current.upload(`/gym/${savedNo}/thumb`);
+        } catch (err) {
+          console.error('대표 이미지 업로드 실패:', err);
+          thumbOk = false;
+        }
+      }
+
+      /* ---------- ③ 영업시간 일괄 저장 ----------
          7건을 통째로 보냅니다. gno는 경로에 있지만 바디에도 넣어 두면
          서버가 어느 암장 것인지 한 번 더 확인할 수 있습니다. */
       await axiosInstance.put(`/gym/${savedNo}/hours`,
@@ -505,7 +526,7 @@ export default function AdminGymForm() {
         })),
       );
 
-      /* ---------- ③ 난이도 구성 일괄 저장 ----------
+      /* ---------- ④ 난이도 구성 일괄 저장 ----------
          [실무 팁] sortOrder(정규화 점수)는 보내지 않습니다.
          서버 GymGradeDTO.toEntity()가 Tool.toSortOrder()로 항상 다시 계산하기 때문입니다.
          계산 규칙을 서버 한 곳에만 두어야 (1) 규칙이 어긋나지 않고
@@ -525,8 +546,10 @@ export default function AdminGymForm() {
       );
 
       showAlert(
-        isEdit ? '암장 정보가 수정되었습니다.' : '암장이 등록되었습니다.',
-        'success',
+        thumbOk
+          ? (isEdit ? '암장 정보가 수정되었습니다.' : '암장이 등록되었습니다.')
+          : '암장 정보는 저장되었지만 대표 이미지 업로드에 실패했습니다.\n수정 화면에서 다시 시도해 주세요.',
+        thumbOk ? 'success' : 'error',
         () => navigate('/admin/gym', { replace: true }),
       );
     } catch (err) {
@@ -602,6 +625,17 @@ export default function AdminGymForm() {
                   onChange={(e) => setField('gname', e.target.value)}
                 />
                 {errors.gname && <p className="form_hint error">{errors.gname}</p>}
+              </div>
+            </div>
+
+            <div className="form_group">
+              <label className="form_label">대표 이미지</label>
+              <div className="form_control">
+                <ThumbUploader ref={thumbRef} initialUrl={thumbInitialUrl} />
+                <p className="form_hint">
+                  검색 결과 카드·지도 팝업·상세 페이지 상단에 표시되는 이미지입니다.
+                  저장 버튼을 눌러야 반영됩니다.
+                </p>
               </div>
             </div>
 

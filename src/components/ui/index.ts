@@ -22,6 +22,8 @@ export { default as SearchBar } from './common/SearchBar';
 export { default as AttachUploader } from './common/AttachUploader';
 export type { AttachUploaderHandle } from './common/AttachUploader';
 export { default as AttachViewer } from './common/AttachViewer';
+export { default as ThumbUploader } from './common/ThumbUploader';
+export type { ThumbUploaderHandle } from './common/ThumbUploader';
 
 export { default as GymCard } from './GymCard';
 export { default as ProductCard } from './ProductCard';

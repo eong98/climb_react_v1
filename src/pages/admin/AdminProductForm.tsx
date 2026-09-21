@@ -10,16 +10,17 @@ import {
   PRODUCT_TNAME,
 } from '../../components/ts/Shop';
 
-import type { AttachUploaderHandle } from '../../components/ui';
+import type { AttachUploaderHandle, ThumbUploaderHandle } from '../../components/ui';
 import {
   AlertModal,
   AttachUploader,
   Loading,
   PageHeader,
+  ThumbUploader,
 } from '../../components/ui';
 
 import { useAlert } from '../../hooks/useAlert';
-import { axiosInstance, comma, getErrorMessage } from '../../utils/Tool';
+import { axiosInstance, comma, getErrorMessage, getProductImageUrl } from '../../utils/Tool';
 
 /* ============================================================================
    관리자 - 상품 등록 / 수정 (한 컴포넌트가 두 모드를 겸합니다)
@@ -83,8 +84,11 @@ export default function AdminProductForm() {
 
   /** 이미지 업로더 핸들 — 저장 후 상품번호로 업로드하기 위해 ref로 연결합니다 */
   const uploaderRef = useRef<AttachUploaderHandle>(null);
+  /** 대표 이미지(THUMB) 업로더 핸들 — 목록/상세 카드에 실제로 뜨는 이미지입니다 */
+  const thumbRef = useRef<ThumbUploaderHandle>(null);
 
   const [form, setForm] = useState<ProductFormState>(EMPTY_FORM);
+  const [thumbInitialUrl, setThumbInitialUrl] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
@@ -124,6 +128,7 @@ export default function AdminProductForm() {
           status: product.status ?? 1,
           content: product.content ?? '',
         });
+        setThumbInitialUrl(getProductImageUrl(product.thumb));
       } catch (err) {
         if (!alive) return;
         console.error('상품 조회 실패:', err);
@@ -245,10 +250,23 @@ export default function AdminProductForm() {
         throw new Error('저장된 상품번호를 확인할 수 없습니다.');
       }
 
-      /* ---------- ② 이미지 업로드 ---------- */
+      /* ---------- ② 대표 이미지(THUMB) 업로드 ----------
+         목록/상세 카드가 실제로 보여주는 이미지입니다. ATTACH 공통 업로더(③)와는
+         별개로 PRODUCT.THUMB 컬럼을 직접 갱신하는 전용 API를 호출합니다. */
       let uploadOk = true;
+      if (thumbRef.current?.hasFile()) {
+        try {
+          await thumbRef.current.upload(`/product/${savedNo}/thumb`);
+        } catch (err) {
+          console.error('대표 이미지 업로드 실패:', err);
+          uploadOk = false;
+        }
+      }
+
+      /* ---------- ③ 상세 갤러리 이미지 업로드 (선택) ---------- */
       if (uploaderRef.current?.hasFiles()) {
-        uploadOk = await uploaderRef.current.upload(savedNo);
+        const galleryOk = await uploaderRef.current.upload(savedNo);
+        uploadOk = uploadOk && galleryOk;
       }
 
       if (uploadOk) {
@@ -511,7 +529,17 @@ export default function AdminProductForm() {
         </div>
 
         <div className="form_group">
-          <label className="form_label">상품 이미지</label>
+          <label className="form_label">대표 이미지</label>
+          <div className="form_control">
+            <ThumbUploader ref={thumbRef} initialUrl={thumbInitialUrl} />
+            <p className="form_hint">
+              스토어 목록 카드와 상세 화면 상단에 표시되는 이미지입니다. 저장을 눌러야 반영됩니다.
+            </p>
+          </div>
+        </div>
+
+        <div className="form_group">
+          <label className="form_label">추가 이미지</label>
           <div className="form_control">
             <AttachUploader ref={uploaderRef} tname={PRODUCT_TNAME} />
             <p className="form_hint">
