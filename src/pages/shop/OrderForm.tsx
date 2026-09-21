@@ -5,10 +5,11 @@ import type { CartType, OrderType } from '../../components/ts/Shop';
 import { DELIVERY_FEE, FREE_DELIVERY_OVER, PAY_METHOD_OPTIONS } from '../../components/ts/Shop';
 import type { MemberType } from '../../components/ts/Member';
 
-import { AlertModal, EmptyState, Loading, PageHeader } from '../../components/ui';
+import { AddressSearchButton, AlertModal, EmptyState, Loading, PageHeader } from '../../components/ui';
 
 import { useAlert } from '../../hooks/useAlert';
 import { GlobalStoreCart } from '../../store/CartStore';
+import { requestTossPayment } from '../../utils/tossPayments';
 import {
   axiosInstance,
   comma,
@@ -373,6 +374,45 @@ export default function OrderForm() {
         payMethod: body.payMethod,
       };
 
+      /*
+        [토스페이먼츠 연동] 주문은 항상 이 시점에 "결제대기" 상태로 이미 만들어져 있습니다.
+        결제수단이 TOSS일 때만 실제 결제창을 열고, 나머지(CARD/BANK/KAKAO)는 PG가 붙어 있지 않아
+        예전처럼 곧바로 완료 화면으로 보냅니다(시뮬레이션 — 실제로 돈이 오가지 않음).
+
+        결제창은 성공하면 브라우저를 통째로 successUrl로 이동시키므로, 그 아래 navigate()는
+        보통 실행되지 않습니다. 실행된다면 결제창을 열기도 전에 실패했다는 뜻입니다.
+      */
+      if (body.payMethod === 'TOSS') {
+        try {
+          const orderName =
+            lines.length > 1
+              ? `${lines[0].pname} 외 ${lines.length - 1}건`
+              : lines[0].pname;
+
+          await requestTossPayment({
+            amount: order.totalPrice ?? totalPrice,
+            // 토스의 orderId는 우리 시스템의 주문코드(ORDER_CODE)를 그대로 씁니다.
+            // ORDER_CODE는 UNIQUE 제약이 걸려 있어 토스가 요구하는 "주문마다 고유한 값" 조건과 맞습니다.
+            orderId: order.orderCode ?? String(order.no),
+            orderName,
+            // 결제 완료/실패 후 돌아올 주소 — 주문번호를 같이 넘겨 결제 실패 화면에서 안내에 씁니다.
+            successUrl: `${window.location.origin}/shop/order/toss/success`,
+            failUrl: `${window.location.origin}/shop/order/toss/fail?no=${order.no}`,
+            customerName: body.receiver,
+          });
+          return; // 정상 흐름이라면 위 호출에서 이미 페이지가 이동합니다.
+        } catch (err) {
+          // 결제창 자체를 열지 못한 경우(스크립트 로딩 실패 등). 주문은 이미 "결제대기"로 남아 있으므로
+          // 마이페이지에서 다시 시도하거나 취소할 수 있다고 안내합니다.
+          showAlert(
+            getErrorMessage(err, '결제창을 여는 데 실패했습니다. 마이페이지에서 다시 시도해 주세요.'),
+            'error',
+          );
+          setSubmitting(false);
+          return;
+        }
+      }
+
       navigate('/shop/order/complete', { state: { order }, replace: true });
     } catch (err) {
       // "재고가 부족합니다 (남은 수량 2개)" 같은 서버 메시지를 그대로 보여줍니다.
@@ -524,22 +564,23 @@ export default function OrderForm() {
                   우편번호
                 </label>
                 <div className="flex1">
-                  <input
-                    id="zipcode"
-                    type="text"
-                    className="form_input order_zipcode"
-                    value={form.zipcode}
-                    maxLength={6}
-                    inputMode="numeric"
-                    placeholder="06236"
-                    onChange={(e) => setField('zipcode', e.target.value)}
-                  />
-                  {/*
-                    [실무 팁] 실제 서비스라면 여기에 다음(카카오) 우편번호 서비스를 붙여
-                    주소를 검색으로 채웁니다. 외부 스크립트 의존을 줄이려고
-                    이 프로젝트에서는 직접 입력으로 두었습니다.
-                  */}
-                  <p className="form_hint">주소는 직접 입력합니다.</p>
+                  <div className="join_check_row">
+                    <input
+                      id="zipcode"
+                      type="text"
+                      className="form_input order_zipcode"
+                      value={form.zipcode}
+                      readOnly
+                      placeholder="주소 검색으로 채워집니다"
+                      onChange={(e) => setField('zipcode', e.target.value)}
+                    />
+                    <AddressSearchButton
+                      onComplete={(data) => {
+                        setField('zipcode', data.zonecode);
+                        setField('addr', data.roadAddress || data.address);
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -554,7 +595,8 @@ export default function OrderForm() {
                     className={`form_input ${errors.addr ? 'is_error' : ''}`}
                     value={form.addr}
                     maxLength={200}
-                    placeholder="서울특별시 강남구 테헤란로 123"
+                    placeholder="주소 검색 버튼을 눌러주세요"
+                    readOnly
                     onChange={(e) => setField('addr', e.target.value)}
                   />
                   {errors.addr && <p className="form_hint error">{errors.addr}</p>}
@@ -640,10 +682,19 @@ export default function OrderForm() {
 
             <div className="notice_box mt16">
               <span>ℹ️</span>
-              <p>
-                포트폴리오용 프로젝트라 <strong>실제 결제는 이루어지지 않습니다.</strong>
-                주문은 결제대기 상태로 생성되며, 마이페이지에서 취소할 수 있습니다.
-              </p>
+              {form.payMethod === 'TOSS' ? (
+                <p>
+                  <strong>토스페이먼츠 테스트 결제</strong>로 연결됩니다. 실제 결제창이 뜨지만
+                  테스트 상점 키라 <strong>돈은 실제로 빠져나가지 않습니다.</strong> 결제 페이지에서
+                  테스트 카드번호(예: 4330-0000-0000-0000, 유효기간/CVC는 아무 값)를 입력해 보세요.
+                </p>
+              ) : (
+                <p>
+                  포트폴리오용 프로젝트라 이 결제수단은 <strong>실제 결제 연동 없이 시뮬레이션</strong>됩니다.
+                  주문은 결제대기 상태로 생성되며, 마이페이지에서 취소할 수 있습니다.
+                  (실제 결제를 체험하려면 <strong>토스페이</strong>를 선택해 주세요)
+                </p>
+              )}
             </div>
           </section>
         </div>

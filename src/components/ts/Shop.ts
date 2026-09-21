@@ -90,6 +90,8 @@ export interface OrderType {
   payStatus?: number;
   /** 0:준비 1:출고 2:배송중 3:완료 */
   deliveryStatus?: number;
+  /** 토스페이먼츠 결제승인키 — 결제완료(payStatus=1)일 때만 값이 있습니다. */
+  payKey?: string;
   receiver: string;
   phone: string;
   zipcode?: string;

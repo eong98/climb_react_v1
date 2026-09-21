@@ -41,6 +41,8 @@ import ProductDetail from '../pages/shop/ProductDetail';
 import Cart from '../pages/shop/Cart';
 import OrderForm from '../pages/shop/OrderForm';
 import OrderComplete from '../pages/shop/OrderComplete';
+import OrderTossSuccess from '../pages/shop/OrderTossSuccess';
+import OrderTossFail from '../pages/shop/OrderTossFail';
 
 /* 마이페이지 */
 import MyPage from '../pages/mypage/MyPage';
@@ -120,6 +122,8 @@ export default function App() {
             {/* 주문 */}
             <Route path="/shop/order" element={<OrderForm />} />
             <Route path="/shop/order/complete" element={<OrderComplete />} />
+            <Route path="/shop/order/toss/success" element={<OrderTossSuccess />} />
+            <Route path="/shop/order/toss/fail" element={<OrderTossFail />} />
 
             {/* 마이페이지 */}
             <Route path="/mypage" element={<MyPage />} />
