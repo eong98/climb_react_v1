@@ -1,0 +1,496 @@
+/* ============================================================================
+   CLIMB:ON 스토어 전용 스타일
+   — ProductList / ProductDetail / Cart / OrderForm / OrderComplete
+
+   [네이밍 규칙] 다른 페이지 CSS(gym.css, community.css ...)와 섞이지 않도록
+   접두사를 고정합니다.
+     shop_   상품 목록
+     pd_     상품 상세 (product detail)
+     cart_   장바구니
+     order_  주문서 / 주문 완료
+
+   [원칙]
+   - common.css / layout.css에 이미 있는 클래스(.card, .chip, .price, .info_row,
+     .table, .btn, .form_input, .grid_4 ...)는 여기서 다시 정의하지 않습니다.
+     같은 클래스를 두 파일에서 정의하면 나중에 "어느 쪽이 이기는지" 추적이 어려워집니다.
+   - 색상은 전부 index.css의 디자인 토큰(var(--...))만 사용합니다.
+     하드코딩하면 테마를 바꿀 때 이 파일을 통째로 다시 손봐야 합니다.
+   - 반응형 기준점은 common.css와 동일하게 1024 / 760 / 520px을 씁니다.
+============================================================================ */
+
+
+/* ==========================================================================
+   1. 상품 목록 — ProductList
+========================================================================== */
+
+/* ---- 필터 박스 ---- */
+.shop_filter {
+  padding: 18px;
+  margin-bottom: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.shop_filter_head { display: flex; align-items: center; gap: 10px; }
+
+/* 상세 필터 토글 버튼은 모바일에서만 노출합니다(데스크톱은 항상 펼침). */
+.shop_filter_toggle { display: none; white-space: nowrap; }
+
+.shop_filter_body {
+  display: flex; flex-direction: column; gap: 4px;
+  margin-top: 16px;
+}
+
+.shop_filter_row {
+  display: flex; align-items: flex-start; gap: 16px;
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+}
+.shop_filter_row:first-child { border-top: 0; padding-top: 4px; }
+
+.shop_filter_row > .lb {
+  flex-shrink: 0; width: 84px; padding-top: 7px;
+  font-size: 13px; font-weight: 700; color: var(--text-faint);
+}
+
+/* ---- 가격 범위 입력 ---- */
+.shop_price_range { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.shop_price_range .form_input { width: 130px; min-height: 34px; font-size: 13px; }
+.shop_price_tilde { color: var(--text-ghost); }
+
+.shop_sort_select { min-width: 140px; min-height: 34px; font-size: 13px; }
+
+/* ---- 적용된 조건 요약 ---- */
+.shop_selected_chips {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  margin-top: 16px; padding-top: 16px;
+  border-top: 1px dashed var(--border);
+}
+.shop_chip_x { margin-left: 2px; font-size: 11px; opacity: .7; }
+
+/* ---- 결과 머리줄 ---- */
+.shop_result_head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 16px;
+}
+
+
+/* ==========================================================================
+   2. 상품 상세 — ProductDetail
+========================================================================== */
+
+/* ---- 상단: 이미지 + 구매 영역 ---- */
+.pd_top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 36px;
+  align-items: start;
+}
+
+.pd_thumb { aspect-ratio: 1 / 1; border: 1px solid var(--border); }
+.pd_thumb img { object-fit: cover; }
+
+.pd_info { display: flex; flex-direction: column; }
+
+.pd_brand { margin-top: 14px; font-size: 13px; font-weight: 600; color: var(--primary); }
+.pd_name { margin-top: 6px; font-size: 26px; line-height: 1.35; }
+
+.pd_review_link { text-decoration: underline; text-underline-offset: 3px; }
+.pd_review_link:hover { color: var(--primary); }
+
+/* ---- 가격 ---- */
+.pd_price_box {
+  display: flex; flex-direction: column; gap: 4px;
+  margin-top: 18px; padding: 16px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.pd_price { font-size: 30px; font-weight: 800; letter-spacing: -0.04em; }
+.pd_price .won { font-size: 16px; font-weight: 600; margin-left: 2px; }
+
+/* ---- 옵션 (사이즈 / 수량) ---- */
+.pd_opt { display: flex; align-items: flex-start; gap: 16px; padding: 12px 0; }
+.pd_opt > .lb {
+  flex-shrink: 0; width: 66px; padding-top: 7px;
+  font-size: 13px; font-weight: 700; color: var(--text-faint);
+}
+
+/* 사이즈 칩이 비활성일 때는 누를 수 없다는 걸 분명히 보여줍니다. */
+.pd_opt .chip:disabled { opacity: .4; cursor: not-allowed; }
+
+.pd_qty {
+  display: inline-flex; align-items: center;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.pd_qty_btn {
+  width: 38px; height: 38px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 17px; color: var(--text-dim);
+  background: var(--surface); transition: .14s;
+}
+.pd_qty_btn:hover:not(:disabled) { background: var(--surface-3); color: var(--text); }
+.pd_qty_btn:disabled { opacity: .35; cursor: not-allowed; }
+.pd_qty_num {
+  min-width: 52px; height: 38px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 14.5px; font-weight: 700;
+  background: var(--bg-elevated);
+}
+
+/* ---- 합계 ---- */
+.pd_total {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin-top: 8px; padding: 16px 0;
+  border-top: 1px solid var(--border);
+}
+.pd_total_price { font-size: 24px; font-weight: 800; color: var(--primary); }
+.pd_total_price .won { font-size: 14px; font-weight: 600; margin-left: 2px; }
+
+/* ---- 버튼 ---- */
+.pd_actions { display: flex; gap: 10px; margin-top: 16px; }
+
+/* ---- 상세 설명 ---- */
+/*
+  [보안] 본문은 HTML로 렌더하지 않고 텍스트로만 출력합니다(XSS 방지).
+  pre-line은 \n만 줄바꿈으로 살리고 연속 공백은 접어 주므로
+  관리자가 붙여넣은 설명이 자연스럽게 보입니다.
+*/
+.pd_content {
+  white-space: pre-line;
+  font-size: 14px; line-height: 1.85; color: var(--text-dim);
+}
+
+/* ---- 후기 ---- */
+.pd_form_label { margin-bottom: 0; }
+.pd_size_select { min-width: 120px; }
+
+.pd_review_form {
+  padding: 18px;
+  margin-bottom: 20px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.pd_review_list { display: flex; flex-direction: column; }
+.pd_review_item { padding: 18px 0; border-bottom: 1px solid var(--border); }
+.pd_review_item:last-child { border-bottom: 0; }
+
+.pd_review_head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap;
+}
+.pd_review_content {
+  margin-top: 10px;
+  white-space: pre-line;          /* 후기 줄바꿈 유지 (HTML로 해석하지 않음) */
+  font-size: 14px; line-height: 1.75; color: var(--text-dim);
+}
+
+
+/* ==========================================================================
+   3. 장바구니 — Cart
+========================================================================== */
+
+.cart_layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 28px;
+  align-items: start;
+}
+
+/* ---- 상단 조작줄 ---- */
+.cart_toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+/* ---- 목록 ----
+   표(table) 대신 grid를 쓴 이유: 모바일에서 열을 자유롭게 재배치하려면
+   table보다 grid가 훨씬 다루기 쉽습니다. (표는 셀 순서를 못 바꿉니다)
+*/
+.cart_list { margin-top: 12px; }
+
+.cart_row {
+  display: grid;
+  grid-template-columns: 34px 92px minmax(0, 1fr) 110px 128px 120px 40px;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.cart_row:hover { background: var(--bg-elevated); }
+
+/* 주문 불가(품절/판매중지) 항목 — 흐리게 처리해 선택 대상이 아님을 알립니다. */
+.cart_row_off { opacity: .48; }
+.cart_row_off .cart_pname { text-decoration: line-through; }
+
+.cart_check { display: flex; justify-content: center; }
+
+.cart_thumb {
+  display: block; width: 92px; aspect-ratio: 1 / 1; overflow: hidden;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.cart_thumb img { width: 100%; height: 100%; object-fit: cover; }
+.cart_thumb_empty {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; opacity: .45;
+}
+
+.cart_prod { min-width: 0; }
+.cart_pname { display: block; font-size: 14.5px; font-weight: 600; }
+.cart_pname:hover { color: var(--primary); }
+
+.cart_price { font-size: 13.5px; color: var(--text-dim); text-align: center; }
+
+.cart_qty { display: inline-flex; align-items: center; justify-self: center; }
+.cart_qty_btn {
+  width: 32px; height: 32px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 15px; color: var(--text-dim);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  transition: .14s;
+}
+.cart_qty_btn:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+.cart_qty_btn:last-child  { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+.cart_qty_btn:hover:not(:disabled) { background: var(--surface-3); color: var(--text); }
+.cart_qty_btn:disabled { opacity: .35; cursor: not-allowed; }
+.cart_qty_num {
+  min-width: 42px; height: 32px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 13.5px; font-weight: 700;
+  background: var(--bg-elevated);
+  border-top: 1px solid var(--border-strong);
+  border-bottom: 1px solid var(--border-strong);
+}
+
+.cart_total { text-align: right; }
+.cart_del { display: flex; justify-content: center; }
+
+/* ---- 주문 요약 (sticky) ---- */
+.cart_side { position: sticky; top: calc(var(--header-h) + 20px); }
+
+.cart_summary { padding: 20px; }
+.cart_sum_row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 7px 0;
+  font-size: 13.5px; color: var(--text-dim);
+}
+.cart_sum_row strong { color: var(--text); font-weight: 700; }
+.cart_sum_total { font-size: 14.5px; }
+.cart_sum_total strong { color: var(--primary); }
+
+
+/* ==========================================================================
+   4. 주문서 — OrderForm
+========================================================================== */
+
+.order_layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 28px;
+  align-items: start;
+}
+
+/* ---- 주문 상품 목록 (주문서 / 완료 화면 공용) ---- */
+.order_items { display: flex; flex-direction: column; }
+.order_item {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  align-items: center; gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+.order_item:last-child { border-bottom: 0; }
+
+.order_item_thumb {
+  display: block; width: 72px; aspect-ratio: 1 / 1; overflow: hidden;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.order_item_thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+.order_item_info { min-width: 0; }
+.order_item_name { font-size: 14px; font-weight: 600; }
+.order_item_price { white-space: nowrap; text-align: right; }
+
+/* ---- 배송지 폼 ---- */
+.order_form { display: flex; flex-direction: column; }
+.order_form_row {
+  display: flex; align-items: flex-start; gap: 18px;
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+}
+.order_form_row:first-child { border-top: 0; }
+.order_form_row > .form_label {
+  flex-shrink: 0; width: 92px; padding-top: 10px; margin-bottom: 0;
+}
+.order_zipcode { max-width: 180px; }
+
+/* ---- 결제수단 라디오 ---- */
+.order_pay_group {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;
+}
+.order_pay_item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 14px 16px;
+  font-size: 13.5px; font-weight: 600; color: var(--text-dim);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  transition: .15s;
+}
+.order_pay_item:hover { border-color: var(--border-strong); color: var(--text); }
+.order_pay_item input[type=radio] {
+  width: 17px; height: 17px; accent-color: var(--primary); cursor: pointer;
+}
+/* 선택된 항목은 테두리와 배경으로 확실히 구분합니다. */
+.order_pay_item.on {
+  color: var(--text);
+  background: var(--primary-dim);
+  border-color: var(--primary);
+}
+
+/* ---- 결제 요약 (sticky) ---- */
+.order_side { position: sticky; top: calc(var(--header-h) + 20px); }
+
+.order_summary { padding: 20px; }
+.order_sum_row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 7px 0;
+  font-size: 13.5px; color: var(--text-dim);
+}
+.order_sum_row strong { color: var(--text); font-weight: 700; }
+.order_sum_total { font-size: 14.5px; }
+.order_sum_total strong { color: var(--primary); }
+
+
+/* ==========================================================================
+   5. 주문 완료 — OrderComplete
+========================================================================== */
+
+.order_done { max-width: 720px; }
+
+.order_done_hero {
+  padding: 40px 24px;
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+.order_done_icon { font-size: 46px; line-height: 1; }
+.order_done_title { margin-top: 16px; font-size: 24px; }
+
+.order_done_code {
+  display: inline-flex; align-items: center; gap: 10px;
+  margin-top: 20px; padding: 10px 18px;
+  background: var(--primary-dim);
+  border: 1px solid rgba(200, 255, 61, .25);
+  border-radius: var(--radius-full);
+}
+.order_done_code strong { font-size: 14.5px; color: var(--primary); }
+
+.order_done_actions {
+  display: flex; justify-content: center; gap: 10px;
+  margin-top: 32px;
+}
+
+
+/* ==========================================================================
+   6. 반응형
+   기준점은 common.css와 동일하게 1024 / 760 / 520px.
+========================================================================== */
+
+@media (max-width: 1100px) {
+  /* 사이드 요약이 좁아지면 글자가 두 줄로 깨지므로 조금 일찍 폭을 줄입니다. */
+  .cart_layout  { grid-template-columns: minmax(0, 1fr) 280px; }
+  .order_layout { grid-template-columns: minmax(0, 1fr) 300px; }
+}
+
+@media (max-width: 1024px) {
+  .pd_top { gap: 24px; }
+  .pd_name { font-size: 22px; }
+  .pd_price { font-size: 26px; }
+
+  /* 요약 박스를 아래로 내리고 sticky를 풀어 세로로 쌓습니다. */
+  .cart_layout,
+  .order_layout { grid-template-columns: 1fr; }
+  .cart_side,
+  .order_side { position: static; }
+
+  /* 단가 열을 줄여 좁은 화면에서도 한 줄이 유지되게 합니다. */
+  .cart_row { grid-template-columns: 30px 80px minmax(0, 1fr) 90px 116px 110px 36px; }
+  .cart_thumb { width: 80px; }
+}
+
+@media (max-width: 760px) {
+  /* 상세: 이미지와 구매 영역을 세로로 */
+  .pd_top { grid-template-columns: 1fr; }
+  .pd_actions { flex-direction: column; }
+
+  /* 목록 필터: 상세 필터를 접었다 펼치는 방식으로 전환 */
+  .shop_filter_toggle { display: inline-flex; }
+  .shop_filter_body { display: none; }
+  .shop_filter_body.open { display: flex; }
+
+  .shop_filter_row { flex-direction: column; gap: 10px; }
+  .shop_filter_row > .lb { width: auto; padding-top: 0; }
+  .shop_price_range .form_input { width: 110px; }
+
+  /*
+    장바구니: 표 모양을 버리고 "썸네일 + 정보" 카드 형태로 바꿉니다.
+    좁은 화면에서 7열을 유지하면 글자가 세로로 깨져 읽을 수 없습니다.
+  */
+  .cart_row {
+    grid-template-columns: 28px 76px minmax(0, 1fr) 34px;
+    grid-template-areas:
+      'check thumb prod del'
+      '.     price price price'
+      '.     qty   total total';
+    row-gap: 10px;
+  }
+  .cart_check { grid-area: check; align-self: start; padding-top: 4px; }
+  .cart_thumb { grid-area: thumb; width: 76px; align-self: start; }
+  .cart_prod  { grid-area: prod; }
+  .cart_del   { grid-area: del; align-self: start; }
+  .cart_price { grid-area: price; text-align: left; }
+  .cart_qty   { grid-area: qty; justify-self: start; }
+  .cart_total { grid-area: total; text-align: right; }
+
+  /* data-label로 각 값이 무엇인지 알려줍니다 (표 머리글이 없어졌으므로) */
+  .cart_price::before,
+  .cart_total::before {
+    content: attr(data-label) ' ';
+    margin-right: 6px;
+    font-size: 12px; color: var(--text-faint);
+  }
+
+  /* 주문서 폼: 라벨을 위로 */
+  .order_form_row { flex-direction: column; gap: 8px; }
+  .order_form_row > .form_label { width: auto; padding-top: 0; }
+
+  .order_pay_group { grid-template-columns: 1fr; }
+  .order_done_actions { flex-direction: column; }
+}
+
+@media (max-width: 520px) {
+  .pd_name { font-size: 19px; }
+  .pd_price { font-size: 23px; }
+  .pd_opt { flex-direction: column; gap: 8px; }
+  .pd_opt > .lb { width: auto; padding-top: 0; }
+
+  .order_done_hero { padding: 32px 18px; }
+  .order_done_title { font-size: 20px; }
+
+  .cart_toolbar { gap: 8px; }
+}

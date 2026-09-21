@@ -1,0 +1,214 @@
+/* ============================================================================
+   CLIMB:ON 디자인 토큰 + 전역 기본 스타일
+
+   [디자인 컨셉]
+   실내 클라이밍장의 분위기를 그대로 옮겼습니다.
+   - 배경: 어두운 콘크리트 벽 (#0B0D10)
+   - 포인트: 형광 라임 홀드 (#C8FF3D) — 버튼/강조
+   - 보조: 오렌지 홀드 (#FF6B35) — CTA/경고
+   - 텍스트: 초크 화이트 (#F2F4F6)
+   - 난이도 배지는 실제 국내 암장의 색상 난이도(흰-노랑-주황-초록-파랑-빨강-보라-회색-갈색-검정)를 그대로 사용
+
+   [왜 CSS 변수를 쓰나]
+   색상을 하드코딩하면 나중에 "포인트 컬러만 바꿔주세요" 요청이 왔을 때
+   수십 개 파일을 다 고쳐야 합니다. :root에 변수로 모아두면 여기 한 곳만 바꾸면 됩니다.
+   다크/라이트 테마 전환도 변수 값만 교체하면 끝납니다.
+============================================================================ */
+
+:root {
+  /* ---- 중립색 (어두운 순서대로) ---- */
+  --n-950: #06080A;
+  --n-900: #0B0D10;
+  --n-850: #101318;
+  --n-800: #151A20;
+  --n-700: #1C2229;
+  --n-600: #262E37;
+  --n-500: #333D48;
+  --n-400: #4E5A67;
+  --n-300: #8994A0;
+  --n-200: #B9C2CB;
+  --n-100: #DFE4E9;
+  --n-50:  #F2F4F6;
+
+  /* ---- 라임 (브랜드 메인 = 형광 홀드) ---- */
+  --lime-50:  #F6FFE3;
+  --lime-100: #EAFFBB;
+  --lime-200: #DCFF8A;
+  --lime-300: #CFFF5C;
+  --lime-400: #C8FF3D;
+  --lime-500: #B2ED1F;
+  --lime-600: #93C912;
+  --lime-700: #719C0C;
+  --lime-800: #4F6E08;
+  --lime-900: #2F4304;
+
+  /* ---- 오렌지 (CTA / 강조) ---- */
+  --orange-50:  #FFF3ED;
+  --orange-100: #FFDECC;
+  --orange-200: #FFBD9B;
+  --orange-300: #FF9A6B;
+  --orange-400: #FF8149;
+  --orange-500: #FF6B35;
+  --orange-600: #E04D18;
+  --orange-700: #B03A11;
+  --orange-800: #7E290B;
+  --orange-900: #4E1806;
+
+  /* ---- 하늘 (정보 / 링크) ---- */
+  --sky-200: #9ED8FF;
+  --sky-400: #47B4FF;
+  --sky-500: #1E9EFF;
+  --sky-700: #0B6FBD;
+
+  /* ---- 경고 / 위험 ---- */
+  --amber-200: #FFDC85;
+  --amber-500: #FFB020;
+  --amber-700: #AD6E09;
+  --red-200:   #FFA4AC;
+  --red-400:   #FF5D6B;
+  --red-500:   #F5384A;
+  --red-700:   #A8111F;
+
+  /* ---- 의미 기반 별칭 (실제 코드에서는 이 변수만 사용) ---- */
+  --bg:            var(--n-900);
+  --bg-elevated:   var(--n-850);
+  --surface:       var(--n-800);
+  --surface-2:     var(--n-700);
+  --surface-3:     var(--n-600);
+  --border:        #242C35;
+  --border-strong: #38434F;
+
+  --text:        var(--n-50);
+  --text-dim:    var(--n-200);
+  --text-faint:  var(--n-300);
+  --text-ghost:  var(--n-400);
+
+  --primary:      var(--lime-400);
+  --primary-hover:var(--lime-300);
+  --primary-dim:  rgba(200, 255, 61, .12);
+  --primary-text: #16210A;   /* 라임 배경 위에 올라갈 글자색 (대비 확보) */
+
+  --accent:       var(--orange-500);
+  --accent-hover: var(--orange-400);
+  --accent-dim:   rgba(255, 107, 53, .14);
+
+  --info:    var(--sky-500);
+  --info-dim: rgba(30, 158, 255, .14);
+  --warning: var(--amber-500);
+  --warning-dim: rgba(255, 176, 32, .14);
+  --danger:  var(--red-500);
+  --danger-dim: rgba(245, 56, 74, .14);
+  --success: var(--lime-500);
+  --success-dim: rgba(178, 237, 31, .14);
+
+  /* ---- 난이도 색상 (국내 실내 암장 색상 난이도 그대로) ---- */
+  --grade-white:  #F2F4F6;
+  --grade-yellow: #FFD93D;
+  --grade-orange: #FF9F1C;
+  --grade-green:  #4CC98A;
+  --grade-blue:   #3B9BFF;
+  --grade-red:    #FF4D5E;
+  --grade-purple: #A878FF;
+  --grade-gray:   #94A3B1;
+  --grade-brown:  #A9744F;
+  --grade-black:  #1B222A;
+
+  /* ---- 폰트 ---- */
+  --font-base: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont,
+               'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  --font-mono: 'JetBrains Mono', 'D2Coding', Consolas, monospace;
+
+  /* ---- 모서리 / 간격 ---- */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+  --radius-full: 999px;
+
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 20px; --sp-6: 24px; --sp-8: 32px; --sp-10: 40px;
+  --sp-12: 48px; --sp-16: 64px; --sp-20: 80px;
+
+  /* ---- 그림자 ---- */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, .28);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, .35);
+  --shadow-lg: 0 18px 48px rgba(0, 0, 0, .45);
+  --shadow-glow: 0 0 0 3px var(--primary-dim);
+
+  /* ---- 레이아웃 ---- */
+  --maxw: 1200px;        /* 본문 최대 너비 */
+  --maxw-wide: 1440px;   /* 지도/관리자처럼 넓게 쓰는 화면 */
+  --header-h: 64px;      /* 상단 헤더 높이 (sticky 계산에 사용) */
+  --sidebar-w: 220px;    /* 관리자 사이드바 너비 */
+}
+
+/* ============================================================================
+   기본 리셋 / 타이포그래피
+============================================================================ */
+* { box-sizing: border-box; }
+*::before, *::after { box-sizing: border-box; }
+
+html {
+  scroll-behavior: smooth;
+  scrollbar-color: var(--border-strong) var(--bg);
+  scrollbar-width: thin;
+}
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 100px;
+  border: 2px solid var(--bg);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--text-ghost); }
+
+html, body { width: 100%; height: 100%; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-base);
+  font-size: 15px;
+  line-height: 1.6;
+  letter-spacing: -0.02em;   /* 한글은 살짝 좁혀야 더 깔끔하게 보입니다 */
+  color: var(--text);
+  background-color: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 { margin: 0; padding: 0; font-weight: 700; letter-spacing: -0.03em; }
+p { margin: 0; }
+ul, ol { margin: 0; padding: 0; list-style: none; }
+figure, figcaption, address { margin: 0; padding: 0; font-style: normal; }
+fieldset { margin: 0; padding: 0; border: 0; }
+img { max-width: 100%; vertical-align: middle; }
+iframe { display: inline-block; border: 0; }
+b, strong { font-weight: 700; }
+
+a, a:active, a:visited { color: inherit; text-decoration: none; }
+
+button {
+  cursor: pointer;
+  border: 0;
+  background: none;
+  color: inherit;
+  font-family: inherit;
+  vertical-align: middle;
+}
+
+label { display: inline-block; vertical-align: middle; cursor: pointer; }
+
+/* 스크린리더 전용 텍스트 (화면에서는 안 보이지만 접근성 도구는 읽음) */
+.hidden {
+  overflow: hidden; position: absolute;
+  width: 1px; height: 1px; margin: -1px; border: 0; padding: 0;
+  clip: rect(0 0 0 0); clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* 키보드 포커스 표시 (접근성: 마우스 클릭 시에는 안 나오고 Tab 이동 시에만 표시) */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+#root { display: flex; flex-direction: column; min-height: 100vh; }

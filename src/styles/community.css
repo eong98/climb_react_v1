@@ -1,0 +1,453 @@
+/* ============================================================================
+   CLIMB:ON 커뮤니티 전용 스타일
+
+   대상 화면
+     /community               BoardList.tsx    목록 (게시판 종류별로 레이아웃 4종)
+     /community/:no           BoardDetail.tsx  상세 + 댓글/대댓글
+     /community/write · /:no/edit  BoardForm.tsx  글쓰기 / 수정
+
+   [이 파일의 핵심 — 왜 목록 레이아웃이 4종인가]
+   같은 BOARD 테이블을 쓰지만 게시판마다 "독자가 먼저 보고 싶은 정보"가 다릅니다.
+     0 자유 · 3 질문답변 → 제목을 빠르게 훑는다        : .board_table  (테이블형)
+     1 파트너 구해요     → 지역·만남일시가 제목보다 급함 : .board_cards  (가로 카드)
+     2 암장 후기         → 어느 암장인지 + 본문 맛보기   : .board_cards  (세로 카드)
+     4 중고거래          → 가격 비교가 목적             : .board_deal_grid (그리드)
+   한 레이아웃으로 통일하면 CSS는 짧아지지만, 파트너 모집에서 만남 시간을 보려고
+   글을 하나씩 열어야 하는 UX가 됩니다.
+
+   [작성 원칙]
+   - 색·간격은 index.css의 디자인 토큰(var(--...))만 사용합니다.
+   - common.css의 .card / .badge / .table / .form_* 는 재정의하지 않고 조합합니다.
+   - 테이블 열 너비 같은 클래스(.col_no 등)는 다른 화면(공지 목록)과 값이 다르므로
+     반드시 .board_table 아래로 한정해 서로 간섭하지 않게 합니다.
+============================================================================ */
+
+/* ==========================================================================
+   1. 목록 상단 (탭 / 필터 / 결과 요약)
+========================================================================== */
+
+/* 게시판 종류 탭 — common.css .tabs에 커뮤니티용 간격만 덧입힙니다 */
+.board_tabs { margin-bottom: 18px; }
+
+.board_filter { margin-bottom: 16px; }
+/* 검색조건·정렬 셀렉트가 너무 좁으면 글자가 잘립니다 */
+.board_filter .f_item .form_select { min-width: 108px; }
+
+.board_result_head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  flex-wrap: wrap; gap: 8px;
+  margin-bottom: 14px;
+}
+
+
+/* ==========================================================================
+   2. 테이블형 목록 (자유게시판 · 질문답변)
+========================================================================== */
+/*
+  열 너비는 지정하되 table-layout은 auto(기본값) 그대로 둡니다.
+  fixed로 바꾸면 common.css의 `.table .col_title { max-width: 0 }`이 무시돼
+  제목 말줄임이 동작하지 않습니다. (fixed 레이아웃에서 셀의 max-width는 무시됨)
+*/
+.board_table .col_no { width: 78px; }
+.board_table .col_writer { width: 120px; }
+.board_table .col_num { width: 72px; }
+.board_table .col_date { width: 108px; }
+
+/* 제목 칸만 좌측 정렬 + 남는 폭을 전부 차지 */
+.board_table .col_title { text-align: left; }
+.board_table .col_title a {
+  display: inline-flex; align-items: center; gap: 6px; max-width: 100%;
+}
+.board_table .col_title .txt {
+  overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+}
+.board_table .col_title a:hover .txt { color: var(--primary); }
+
+/* 댓글 수 [3] — 제목 옆에 붙어 대화가 있는 글을 표시합니다 */
+.board_reply_cnt {
+  flex-shrink: 0;
+  font-size: 12px; font-weight: 700; color: var(--accent);
+}
+
+/* 첨부 클립 아이콘 (테이블 / 카드 공용) */
+.board_table .col_title .clip,
+.board_card_title .clip,
+.board_card_top .clip,
+.board_deal_head .clip {
+  flex-shrink: 0;
+  font-size: 12px; color: var(--text-ghost);
+}
+
+/* 공지글 행 — 살짝 라임빛 배경 + 굵은 제목으로 일반 글과 구분합니다 */
+.board_table tr.is_notice { background: rgba(200, 255, 61, .045); }
+.board_table tr.is_notice .col_title a { font-weight: 700; }
+
+
+/* ==========================================================================
+   3. 카드형 목록 (파트너 구해요 · 암장 후기)
+========================================================================== */
+.board_cards { display: flex; flex-direction: column; gap: 10px; }
+
+.board_card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  transition: .16s ease;
+  overflow: hidden;
+}
+.board_card:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+/* 만남 일시가 지난 모집글 — 흐리게 처리해 유효한 글이 먼저 읽히게 합니다 */
+.board_card.is_closed { opacity: .62; }
+.board_card.is_closed:hover { opacity: .82; }
+
+/* 가로 배치(파트너) — 지역/일시 → 제목 → 상태 순으로 시선이 흐릅니다 */
+.board_card_link {
+  display: flex; align-items: center; gap: 16px;
+  padding: 16px 18px;
+}
+
+/* 세로 배치(암장 후기) — 같은 카드 컴포넌트를 방향만 바꿔 재사용합니다 */
+.board_card_link.col {
+  flex-direction: column; align-items: stretch; gap: 9px;
+}
+
+/* 좌측 고정 영역: 지역 배지 + 만남 일시 */
+.board_card_side {
+  width: 118px; flex-shrink: 0;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 7px;
+}
+
+.board_meet {
+  font-family: var(--font-mono);
+  font-size: 12.5px; font-weight: 700; color: var(--primary);
+  white-space: nowrap;
+}
+/* 마감된 일정 — 취소선으로 "지난 약속"임을 즉시 보여줍니다 */
+.board_meet.off { color: var(--text-ghost); text-decoration: line-through; }
+
+.board_card_main { flex: 1; min-width: 0; }
+
+.board_card_title {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 15px; font-weight: 700; line-height: 1.45; color: var(--text);
+}
+.board_card:hover .board_card_title { color: var(--primary); }
+
+/* 2줄 말줄임(.ellipsis.line2)과 함께 쓰일 때 flex가 clamp를 깨뜨리지 않게 */
+.board_card_title.line2 { display: -webkit-box; }
+
+/* 카드 상단 배지 줄 (후기: 공지 + 암장명 + 첨부) */
+.board_card_top { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+
+.board_card_desc {
+  font-size: 13px; line-height: 1.65; color: var(--text-faint);
+  word-break: break-word;
+}
+
+.board_card_meta {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
+  margin-top: 8px;
+  font-size: 12px; color: var(--text-ghost);
+}
+/* 작성자 이름만 조금 밝게 — 메타 줄에서 사람이 먼저 보입니다 */
+.board_card_meta span:first-child { color: var(--text-faint); font-weight: 600; }
+
+.board_card_state { flex-shrink: 0; }
+
+
+/* ==========================================================================
+   4. 중고거래 그리드
+========================================================================== */
+.board_deal_grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+}
+
+.board_deal {
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 16px;
+}
+.board_deal_head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+
+/* 가격 — 중고거래 목록에서 가장 먼저 비교하는 값이라 가장 크게 둡니다 */
+.board_deal_price {
+  font-size: 20px; font-weight: 800; letter-spacing: -0.04em;
+  color: var(--primary);
+}
+.board_deal_price .won { margin-left: 2px; font-size: 13px; font-weight: 700; }
+
+/* 그리드 카드의 제목은 2줄 고정 — 제목 길이가 달라도 카드 높이가 들쭉날쭉하지 않게 */
+.board_deal .board_card_title { font-size: 14px; min-height: 40px; }
+
+
+/* ==========================================================================
+   5. 상세 — 본문
+========================================================================== */
+.board_view {
+  padding: 28px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.board_view_head { padding-bottom: 18px; border-bottom: 1px solid var(--border); }
+.board_view_head h3 {
+  margin-top: 12px;
+  font-size: 22px; line-height: 1.4;
+  word-break: break-word;
+}
+
+.board_view_meta {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 14px;
+  margin-top: 14px;
+  font-size: 12.5px; color: var(--text-ghost);
+}
+.board_view_meta .writer { display: inline-flex; align-items: center; gap: 6px; }
+.board_view_meta .writer strong { font-size: 13.5px; color: var(--text-dim); }
+
+/* 타입별 추가 정보 블록 (지역/일시, 암장, 가격/거래상태) */
+.board_view_extra {
+  margin-top: 20px; padding: 4px 18px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.board_view_extra .info_row:last-child { border-bottom: none; }
+
+.board_gym_link { font-weight: 700; color: var(--primary); }
+.board_gym_link:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+/*
+  본문.
+  dangerouslySetInnerHTML을 쓰지 않으므로(XSS 방지) 줄바꿈은 CSS가 살립니다.
+  white-space: pre-line → 연속 공백은 합치고 \n만 줄바꿈으로 표시.
+*/
+.board_view_body {
+  min-height: 180px; padding: 26px 2px;
+  font-size: 15px; line-height: 1.9; color: var(--text-dim);
+  white-space: pre-line;
+  word-break: break-word;
+}
+
+.board_view_attach:not(:empty) {
+  margin-bottom: 22px; padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.board_view_foot {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 12px;
+  padding-top: 20px; border-top: 1px solid var(--border);
+}
+
+/* 좋아요 버튼 — 누르면 하트가 채워지고 테두리가 주황으로 바뀝니다 */
+.board_like {
+  display: inline-flex; align-items: center; gap: 7px;
+  min-height: 40px; padding: 0 20px;
+  font-size: 13.5px; font-weight: 600; color: var(--text-dim);
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-full);
+  transition: .16s ease;
+}
+.board_like:hover { border-color: var(--accent); color: var(--text); }
+.board_like b { color: var(--text); }
+.board_like.on {
+  color: var(--orange-300);
+  background: var(--accent-dim);
+  border-color: var(--accent);
+}
+.board_like.on b { color: var(--orange-300); }
+
+
+/* ==========================================================================
+   6. 댓글 / 대댓글
+========================================================================== */
+.comment_section { margin-top: 32px; }
+
+.comment_title {
+  margin-bottom: 14px;
+  font-size: 16px;
+}
+
+/* ---------- 작성 폼 ---------- */
+.comment_form {
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+.comment_form .form_textarea { min-height: 88px; }
+
+.comment_form_foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  margin-top: 10px;
+}
+
+/* 비로그인 안내 (notice_box tip 위에 여백만 추가) */
+.comment_login { margin-bottom: 4px; }
+
+/* ---------- 목록 ---------- */
+.comment_list { display: flex; flex-direction: column; margin-top: 8px; }
+
+.comment_item {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 16px 2px;
+  border-bottom: 1px solid var(--border);
+}
+.comment_item:last-child { border-bottom: none; }
+
+/*
+  대댓글 들여쓰기.
+  padding-left로 밀어 넣고 왼쪽에 세로선을 그려 "이 댓글에 달린 답글"임을 보여줍니다.
+  깊이는 1단까지만 허용하므로(BoardDetail 참고) 들여쓰기도 한 번뿐입니다.
+*/
+.comment_reply {
+  position: relative;
+  padding-left: 34px;
+  background: rgba(255, 255, 255, .012);
+}
+.comment_reply::before {
+  content: '';
+  position: absolute; left: 14px; top: 18px; bottom: 16px;
+  width: 2px; background: var(--border-strong);
+  border-radius: 2px;
+}
+.comment_arrow {
+  flex-shrink: 0;
+  font-size: 13px; color: var(--text-ghost); line-height: 1.6;
+}
+
+/* 삭제된 댓글 — 자리는 남기되 흐리게 (대댓글의 부모 자리를 지키기 위함) */
+.comment_item.is_deleted { opacity: .55; }
+
+.comment_body { flex: 1; min-width: 0; }
+
+.comment_head { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.comment_writer { font-size: 13.5px; color: var(--text); }
+
+.comment_text {
+  margin-top: 7px;
+  font-size: 13.5px; line-height: 1.75; color: var(--text-dim);
+  white-space: pre-line;
+  word-break: break-word;
+}
+.comment_text.deleted { color: var(--text-ghost); font-style: italic; }
+
+.comment_tools { display: flex; align-items: center; gap: 12px; margin-top: 9px; }
+
+/* 인라인 편집 / 답글 입력창 */
+.comment_edit,
+.comment_reply_form { margin-top: 10px; }
+.comment_edit .form_textarea,
+.comment_reply_form .form_textarea { min-height: 72px; font-size: 13.5px; }
+
+
+/* ==========================================================================
+   7. 글쓰기 / 수정 폼
+========================================================================== */
+.board_form { max-width: 900px; }
+
+/* datetime-local은 내용이 짧아 100%로 늘리면 허전합니다 */
+.board_datetime { max-width: 260px; }
+
+/* 암장 선택 (읽기전용 인풋 + 검색/해제 버튼) */
+.board_gym_pick { display: flex; gap: 8px; }
+.board_gym_pick .form_input { flex: 1; min-width: 0; cursor: pointer; }
+
+/* 가격 입력 — 오른쪽에 '원' 단위를 겹쳐 둡니다 */
+.board_price_input { position: relative; max-width: 260px; }
+.board_price_input .form_input { padding-right: 38px; text-align: right; }
+.board_price_input .unit {
+  position: absolute; top: 50%; right: 13px; transform: translateY(-50%);
+  font-size: 12.5px; color: var(--text-faint);
+  pointer-events: none;   /* 단위를 클릭해도 인풋에 포커스가 가게 */
+}
+
+.board_content { min-height: 320px; }
+
+/* ---------- 암장 검색 모달 ---------- */
+.board_gym_search { display: flex; gap: 8px; }
+.board_gym_search .form_input { flex: 1; min-width: 0; }
+
+.board_gym_result {
+  display: flex; flex-direction: column; gap: 6px;
+  max-height: 320px; overflow-y: auto;
+}
+.board_gym_item {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  width: 100%; padding: 11px 13px;
+  text-align: left;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  transition: .14s;
+}
+.board_gym_item:hover { border-color: var(--primary); background: var(--primary-dim); }
+.board_gym_item strong { font-size: 13.5px; color: var(--text); }
+
+
+/* ==========================================================================
+   8. 반응형
+
+   좁아질수록 정보를 버리지 않고 "덜 중요한 열을 숨기거나 세로로 쌓는" 방향으로 갑니다.
+   (조회/추천 수는 모바일에서 굳이 표로 볼 필요가 없어 가장 먼저 숨깁니다)
+========================================================================== */
+
+@media (max-width: 1024px) {
+  .board_deal_grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 860px) {
+  .board_view { padding: 22px 18px; }
+  .board_view_head h3 { font-size: 19px; }
+  .board_view_body { font-size: 14.5px; padding: 22px 0; }
+
+  /* 조회·추천 열 숨김 — 제목/작성자/날짜만 남겨 가로 스크롤을 없앱니다 */
+  .board_table .col_num { display: none; }
+  .board_table .col_writer { width: 96px; }
+  .board_table .col_date { width: 92px; }
+}
+
+@media (max-width: 760px) {
+  .board_deal_grid { grid-template-columns: repeat(2, 1fr); }
+
+  /* 파트너 카드: 좌측 고정 영역을 위로 올려 2줄 구성으로 */
+  .board_card_link { flex-wrap: wrap; gap: 10px; }
+  .board_card_side {
+    width: 100%;
+    flex-direction: row; align-items: center; gap: 10px;
+  }
+  .board_card_main { flex-basis: 100%; }
+  .board_card_state { margin-left: auto; }
+}
+
+@media (max-width: 640px) {
+  .board_table .col_no { width: 52px; }
+  .board_table .col_writer { display: none; }
+  .board_table th, .board_table td { padding: 11px 8px; font-size: 12.5px; }
+
+  .board_view_foot { flex-direction: column; align-items: stretch; }
+  .board_like { justify-content: center; }
+  .board_view_foot .actions { justify-content: flex-end; }
+
+  /* 대댓글 들여쓰기를 줄여 본문 폭을 확보합니다 */
+  .comment_reply { padding-left: 20px; }
+  .comment_reply::before { left: 6px; }
+
+  .board_datetime,
+  .board_price_input { max-width: none; }
+  .board_content { min-height: 240px; }
+
+  .board_gym_pick { flex-wrap: wrap; }
+  .board_gym_pick .form_input { flex-basis: 100%; }
+}
+
+@media (max-width: 480px) {
+  .board_deal_grid { grid-template-columns: 1fr; }
+  .board_deal .board_card_title { min-height: 0; }
+}

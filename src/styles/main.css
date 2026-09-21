@@ -1,0 +1,452 @@
+/* ============================================================================
+   메인 · 로그인 · 회원가입 · 공지사항 전용 스타일
+
+   [작성 원칙]
+   1) 색/여백/모서리는 index.css의 CSS 변수만 사용합니다.
+      하드코딩한 #C8FF3D 가 파일마다 흩어지면 "포인트 컬러 바꿔주세요" 한마디에
+      전 파일을 뒤져야 합니다.
+   2) common.css / layout.css에 이미 있는 클래스(.card .btn .grid .sec_head .chip ...)는
+      여기서 다시 만들지 않고 그대로 조합해서 씁니다. 여기에는 "메인/로그인/공지에만
+      필요한 것"만 둡니다.
+   3) 클래스 이름은 home_ / auth_ / notice_ / nf_ 처럼 화면별 접두사를 붙였습니다.
+      다른 팀원이 gym.css, community.css를 작성할 때 이름이 충돌하지 않게 하기 위해서입니다.
+============================================================================ */
+
+/* ==========================================================================
+   1. 메인 — 히어로 섹션
+
+   클라이밍장의 첫인상(어두운 벽 + 형광 홀드)을 그라데이션으로 표현합니다.
+   배경 이미지를 쓰지 않은 이유: 이미지는 수백 KB를 잡아먹어 첫 화면이 늦게 뜹니다.
+   CSS 그라데이션은 용량이 0이면서 어떤 해상도에서도 깨지지 않습니다.
+========================================================================== */
+.home_hero {
+  position: relative;
+  padding: 92px 0 84px;
+  overflow: hidden;
+  border-bottom: 1px solid var(--border);
+  background:
+    radial-gradient(900px 420px at 12% -10%, rgba(200, 255, 61, .13), transparent 62%),
+    radial-gradient(760px 420px at 88% 8%,  rgba(255, 107, 53, .11), transparent 60%),
+    linear-gradient(180deg, var(--n-950) 0%, var(--bg) 100%);
+}
+
+/* 홀드가 박힌 벽 느낌의 점 패턴.
+   ::before로 깔아 두면 마크업을 더럽히지 않고 배경만 한 겹 얹을 수 있습니다. */
+.home_hero::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image: radial-gradient(rgba(200, 255, 61, .16) 1.4px, transparent 1.4px);
+  background-size: 34px 34px;
+  opacity: .32;
+  pointer-events: none;   /* 패턴이 클릭을 가로채지 않도록 */
+}
+
+.home_hero_inner { position: relative; max-width: 760px; }
+
+.home_hero_eyebrow {
+  display: inline-flex; align-items: center; gap: 7px;
+  height: 30px; padding: 0 14px; margin-bottom: 20px;
+  font-size: 12.5px; font-weight: 700; letter-spacing: .01em;
+  color: var(--primary);
+  background: var(--primary-dim);
+  border: 1px solid rgba(200, 255, 61, .3);
+  border-radius: var(--radius-full);
+}
+
+.home_hero h1 {
+  font-size: 50px; line-height: 1.16; letter-spacing: -0.045em;
+}
+.home_hero h1 .point { color: var(--primary); }
+.home_hero h1 .accent { color: var(--accent); }
+
+.home_hero_sub {
+  margin-top: 18px;
+  font-size: 16.5px; line-height: 1.7; color: var(--text-faint);
+}
+
+/* 통합 검색창 — 입력 + 검색 버튼 + AI 버튼을 한 줄로 */
+.home_search { display: flex; gap: 10px; margin-top: 32px; }
+
+.home_search_box { position: relative; flex: 1; min-width: 0; }
+.home_search_box .form_input {
+  min-height: 54px; padding: 0 18px 0 46px;
+  font-size: 15px;
+  background: rgba(21, 26, 32, .82);
+  border-color: var(--border-strong);
+  border-radius: var(--radius-md);
+}
+.home_search_box .icon {
+  position: absolute; top: 50%; left: 16px; transform: translateY(-50%);
+  font-size: 16px; color: var(--text-ghost); pointer-events: none;
+}
+.home_search .btn { min-height: 54px; padding: 0 24px; font-size: 14.5px; }
+
+/* 검색창 아래 추천 검색어 */
+.home_hero_tags {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  margin-top: 16px; font-size: 12.5px; color: var(--text-ghost);
+}
+.home_hero_tags .tag {
+  padding: 5px 12px;
+  color: var(--text-faint);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  transition: .15s;
+}
+.home_hero_tags .tag:hover {
+  color: var(--primary); border-color: var(--primary); background: var(--primary-dim);
+}
+
+
+/* ==========================================================================
+   2. 메인 — 암장 유형 퀵 필터 카드
+========================================================================== */
+.home_type_card {
+  display: block; padding: 22px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  transition: .18s ease;
+}
+.home_type_card:hover {
+  transform: translateY(-3px);
+  border-color: var(--primary);
+  box-shadow: var(--shadow-md);
+}
+.home_type_card .emoji { display: block; font-size: 27px; line-height: 1; }
+.home_type_card h4 { margin-top: 14px; font-size: 15.5px; }
+.home_type_card p { margin-top: 7px; font-size: 12.5px; line-height: 1.6; color: var(--text-faint); }
+.home_type_card .go { margin-top: 14px; font-size: 12.5px; font-weight: 700; color: var(--primary); }
+
+
+/* ==========================================================================
+   3. 메인 — 난이도로 찾기
+========================================================================== */
+.home_level_bar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+  padding: 20px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+.home_level_bar .lead {
+  margin-right: 6px; font-size: 13.5px; font-weight: 700; color: var(--text-dim);
+}
+
+/* .chip을 그대로 쓰되 난이도 색 점만 추가합니다 */
+.home_level_chip .dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.home_level_chip.lv1 .dot { background: #4CC98A; }
+.home_level_chip.lv2 .dot { background: var(--sky-400); }
+.home_level_chip.lv3 .dot { background: var(--amber-500); }
+.home_level_chip.lv4 .dot { background: var(--accent); }
+.home_level_chip.lv5 .dot { background: var(--grade-purple); }
+.home_level_chip .range { font-size: 11px; color: var(--text-ghost); font-weight: 500; }
+.home_level_chip:hover .range { color: var(--text-faint); }
+
+
+/* ==========================================================================
+   4. 메인 — 인기 커뮤니티 글 (순위 리스트)
+========================================================================== */
+.home_rank { display: flex; flex-direction: column; }
+
+.home_rank_item {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 4px;
+  border-bottom: 1px solid var(--border);
+  transition: .14s;
+}
+.home_rank_item:last-child { border-bottom: none; }
+.home_rank_item:hover { background: var(--bg-elevated); }
+
+.home_rank_no {
+  width: 26px; flex-shrink: 0; text-align: center;
+  font-family: var(--font-mono); font-size: 14px; font-weight: 700;
+  color: var(--text-ghost);
+}
+/* 1~3위만 포인트 컬러로 강조 */
+.home_rank_item:nth-child(-n+3) .home_rank_no { color: var(--primary); }
+
+.home_rank_body { flex: 1; min-width: 0; }
+.home_rank_body .tit { font-size: 14px; font-weight: 600; }
+.home_rank_item:hover .tit { color: var(--primary); }
+.home_rank_meta {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  margin-top: 5px; font-size: 12px; color: var(--text-ghost);
+}
+
+
+/* ==========================================================================
+   5. 메인 — 서비스 소개 3단 배너
+========================================================================== */
+.home_feature {
+  position: relative; padding: 28px 24px 26px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+/* 카드 상단에 얇은 컬러 라인 — 3장을 색으로 구분해 리듬을 줍니다 */
+.home_feature::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: var(--primary);
+}
+.home_feature.f2::before { background: var(--accent); }
+.home_feature.f3::before { background: var(--sky-500); }
+
+.home_feature .emoji { font-size: 26px; line-height: 1; }
+.home_feature h4 { margin-top: 14px; font-size: 16px; }
+.home_feature p { margin-top: 9px; font-size: 13.5px; line-height: 1.75; color: var(--text-faint); }
+.home_feature .more {
+  display: inline-block; margin-top: 16px;
+  font-size: 13px; font-weight: 700; color: var(--primary);
+}
+.home_feature .more:hover { text-decoration: underline; text-underline-offset: 4px; }
+
+
+/* ==========================================================================
+   6. 메인 — 섹션 공통 보조
+========================================================================== */
+/* .sec_head의 "더보기" 링크 */
+.sec_more { font-size: 13px; font-weight: 600; color: var(--text-faint); white-space: nowrap; }
+.sec_more:hover { color: var(--primary); }
+
+/* 섹션 하나가 통째로 실패했을 때 보여줄 작은 안내 (페이지 전체를 막지 않습니다) */
+.home_sec_error {
+  padding: 34px 20px; text-align: center;
+  font-size: 13px; color: var(--text-ghost);
+  background: var(--bg-elevated);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+}
+
+
+/* ==========================================================================
+   7. 로그인 / 회원가입 공통 (auth_)
+========================================================================== */
+.auth_wrap {
+  display: flex; justify-content: center;
+  padding: 64px 20px 90px;
+}
+.auth_card {
+  width: 100%; max-width: 420px;
+  padding: 36px 32px 32px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+.auth_head { margin-bottom: 26px; text-align: center; }
+.auth_head h2 { font-size: 23px; }
+.auth_head p { margin-top: 8px; font-size: 13.5px; color: var(--text-faint); }
+
+.auth_card .form_input { min-height: 46px; }
+
+/* 로그인 실패 메시지 — 폼 위쪽에 한 번만 */
+.auth_error {
+  display: flex; align-items: center; gap: 8px;
+  padding: 11px 14px; margin-bottom: 18px;
+  font-size: 13px; line-height: 1.55; color: var(--red-200);
+  background: var(--danger-dim);
+  border: 1px solid rgba(245, 56, 74, .3);
+  border-radius: var(--radius-md);
+}
+
+.auth_foot {
+  margin-top: 22px; padding-top: 20px;
+  text-align: center; font-size: 13px; color: var(--text-faint);
+  border-top: 1px solid var(--border);
+}
+.auth_foot a { margin-left: 6px; font-weight: 700; color: var(--primary); }
+.auth_foot a:hover { text-decoration: underline; text-underline-offset: 4px; }
+
+/* 시연용 테스트 계정 안내 */
+.auth_demo { margin-top: 20px; flex-direction: column; gap: 9px; }
+.auth_demo .demo_row {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--font-mono); font-size: 12.5px; color: var(--text-dim);
+}
+.auth_demo .demo_row .role {
+  min-width: 42px; padding: 2px 7px;
+  font-family: var(--font-base); font-size: 11px; font-weight: 700;
+  text-align: center; color: var(--primary-text); background: var(--primary);
+  border-radius: var(--radius-sm);
+}
+.auth_demo .btn_xs { margin-left: auto; }
+
+
+/* ==========================================================================
+   8. 회원가입 전용
+========================================================================== */
+.join_wrap { max-width: 720px; margin: 0 auto; padding: 44px 0 90px; }
+
+/* 아이디/닉네임: 입력창 + 중복확인 버튼 한 줄 배치 */
+.join_check_row { display: flex; gap: 8px; }
+.join_check_row .form_input { flex: 1; min-width: 0; }
+
+/* 선택 입력 묶음 — 필수 항목과 시각적으로 구분 */
+.join_optional_head {
+  display: flex; align-items: center; gap: 10px;
+  margin: 34px 0 4px;
+  font-size: 14px; font-weight: 700; color: var(--text-dim);
+}
+.join_optional_head::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+
+/* 두 칸짜리 선택 박스 (볼더링/리드 레벨 등) */
+.join_two { display: flex; gap: 10px; }
+.join_two > * { flex: 1; min-width: 0; }
+
+/* 약관 동의 */
+.join_agree {
+  margin-top: 30px; padding: 6px 18px 16px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+.join_agree_all {
+  display: flex; align-items: center;
+  padding: 16px 0 14px; margin-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.join_agree_all .check { font-size: 14.5px; font-weight: 700; color: var(--text); }
+.join_agree_row {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 9px 0;
+}
+.join_agree_row .req_mark { font-size: 12px; font-weight: 700; color: var(--accent); }
+.join_agree_row .opt_mark { font-size: 12px; color: var(--text-ghost); }
+
+
+/* ==========================================================================
+   9. 공지사항 목록
+========================================================================== */
+/* 검색 + 유형 필터 줄 (.filterbar 위에 얹는 정렬 규칙만) */
+.notice_filter .form_select { min-width: 130px; }
+
+.notice_table .col_no { width: 78px; }
+.notice_table .col_type { width: 92px; }
+.notice_table .col_vcnt { width: 86px; }
+.notice_table .col_date { width: 116px; }
+
+.notice_table .col_title a { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; }
+.notice_table .col_title .txt { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.notice_table .col_title .clip { flex-shrink: 0; font-size: 12px; color: var(--text-ghost); }
+
+/* 상단 고정 공지 행 강조 */
+.notice_table tr.is_top { background: rgba(200, 255, 61, .045); }
+.notice_table tr.is_top .col_title a { font-weight: 700; }
+
+/* 모바일에서는 조회수/날짜 열을 숨겨 표가 옆으로 밀리지 않게 합니다 */
+@media (max-width: 640px) {
+  .notice_table .col_vcnt { display: none; }
+}
+
+
+/* ==========================================================================
+   10. 공지사항 상세
+========================================================================== */
+.notice_view {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.notice_view_head {
+  padding: 26px 28px 22px;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+}
+.notice_view_head h3 { margin-top: 12px; font-size: 21px; line-height: 1.45; }
+.notice_view_meta {
+  display: flex; flex-wrap: wrap; gap: 8px 18px;
+  margin-top: 14px; font-size: 12.5px; color: var(--text-ghost);
+}
+
+.notice_view_body {
+  padding: 30px 28px 40px;
+  font-size: 14.5px; line-height: 1.85; color: var(--text-dim);
+  /* [보안] 본문을 HTML로 심지 않고 텍스트로 출력합니다.
+     pre-line이면 원문의 줄바꿈은 그대로 살아나면서 <script>는 글자로 보입니다. */
+  white-space: pre-line;
+  word-break: break-word;
+  min-height: 180px;
+}
+
+/* 첨부파일 영역.
+   AttachViewer는 첨부가 없으면 null을 반환하므로 이 div가 비게 됩니다.
+   :empty로 여백을 없애 "아무것도 없는데 공간만 차지"하는 상황을 막습니다. */
+.notice_view_attach { padding: 0 28px 30px; }
+.notice_view_attach:empty { display: none; }
+
+@media (max-width: 640px) {
+  .notice_view_attach { padding: 0 18px 24px; }
+  .notice_view_head { padding: 20px 18px 18px; }
+  .notice_view_head h3 { font-size: 18px; }
+  .notice_view_body { padding: 22px 18px 32px; }
+}
+
+
+/* ==========================================================================
+   11. 404
+========================================================================== */
+.nf_wrap {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 62vh; padding: 70px 20px; text-align: center;
+}
+.nf_code {
+  font-family: var(--font-mono); font-size: 76px; font-weight: 800; line-height: 1;
+  letter-spacing: -0.04em;
+  color: transparent;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+.nf_wrap h2 { margin-top: 22px; font-size: 24px; }
+.nf_wrap p { margin-top: 12px; font-size: 14.5px; line-height: 1.75; color: var(--text-faint); }
+.nf_wrap .actions { margin-top: 30px; }
+
+
+/* ==========================================================================
+   12. 반응형
+   [원칙] 좁아질수록 "글자 크기 → 여백 → 배치" 순으로 줄입니다.
+   배치부터 무너뜨리면 화면이 갑자기 달라 보여 사용자가 당황합니다.
+========================================================================== */
+@media (max-width: 860px) {
+  .home_hero { padding: 68px 0 60px; }
+  .home_hero h1 { font-size: 38px; }
+  .home_hero_sub { font-size: 15px; }
+}
+
+@media (max-width: 640px) {
+  /* 검색창과 버튼이 한 줄에 다 안 들어가므로 세로로 쌓습니다 */
+  .home_search { flex-direction: column; }
+  .home_search .btn { width: 100%; }
+
+  .join_wrap { padding: 28px 0 60px; }
+  .join_two { flex-direction: column; }
+}
+
+@media (max-width: 520px) {
+  .home_hero { padding: 52px 0 48px; }
+  .home_hero h1 { font-size: 30px; }
+  .home_hero_eyebrow { margin-bottom: 14px; }
+  .home_hero_sub { margin-top: 14px; font-size: 14px; }
+  .home_search { margin-top: 24px; }
+  .home_search_box .form_input { min-height: 48px; font-size: 14px; }
+  .home_search .btn { min-height: 46px; }
+
+  .sec_head { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .sec_head h3 { font-size: 18px; }
+
+  .home_level_bar { padding: 16px; }
+  .home_level_bar .lead { width: 100%; margin-bottom: 2px; }
+
+  .auth_wrap { padding: 32px 16px 60px; }
+  .auth_card { padding: 26px 20px 24px; }
+
+  .nf_code { font-size: 58px; }
+}

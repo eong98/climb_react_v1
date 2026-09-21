@@ -1,0 +1,1085 @@
+/* ============================================================================
+   CLIMB:ON 마이페이지 전용 스타일
+
+   대상 화면
+     /mypage                    MyPage.tsx          대시보드(프로필·요약·최근일지·찜)
+     /mypage/edit               ProfileEdit.tsx     내 정보 수정
+     /mypage/password           PasswordChange.tsx  비밀번호 변경
+     /mypage/favorite           MyFavorite.tsx      찜한 암장
+     /mypage/review             MyReview.tsx        내가 쓴 리뷰
+     /mypage/climblog           ClimbLogList.tsx    등반일지 목록 + 통계(CSS 차트)
+     /mypage/climblog/write     ClimbLogForm.tsx    등반일지 등록/수정
+     /mypage/report             LevelReport.tsx     AI 실력 분석
+     /mypage/order              MyOrder.tsx         주문 내역
+     /mypage/order/:no          OrderDetail.tsx     주문 상세
+
+   [작성 원칙]
+   1) 색·간격·모서리는 index.css의 디자인 토큰(var(--...))만 사용합니다.
+      하드코딩하면 "포인트 컬러만 바꿔주세요" 요청에 수십 개 파일을 고쳐야 합니다.
+      토큰이 없는 값(그래프 눈금 등)만 rgba로 직접 씁니다.
+   2) common.css / layout.css에 이미 있는 클래스(.card, .btn, .badge, .form_*)는
+      다시 정의하지 않고 조합해서 씁니다. 여기에는 마이페이지 고유 구조만 둡니다.
+   3) 차트는 전부 CSS입니다. 막대 = "값/최댓값 × 100%"를 height·width에 넣는 것뿐이라
+      이 정도를 위해 차트 라이브러리(60~100KB)를 넣지 않았습니다.
+   4) 모바일에서 서브 내비는 가로 스크롤로 전환합니다(세로로 7줄 쌓이면 본문이 밀림).
+============================================================================ */
+
+/* ==========================================================================
+   1. 공통 레이아웃 (서브 내비 + 본문)
+========================================================================== */
+
+/* 마이페이지 전 화면의 래퍼. 하위 선택자의 기준점 역할도 합니다. */
+.my_page { padding-bottom: var(--sp-16); }
+
+/*
+  좌측 내비 + 우측 본문 2단 구성.
+  flex가 아니라 grid를 쓴 이유: 본문 쪽에 minmax(0, 1fr)를 줄 수 있습니다.
+  grid 항목의 기본값은 min-width:auto라, 안에 긴 표(주문 상품)가 들어오면
+  칸이 늘어나며 레이아웃이 터집니다. minmax(0, ...)가 그걸 막아 줍니다.
+*/
+.my_layout {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+}
+
+.my_content { min-width: 0; }
+
+
+/* ==========================================================================
+   2. 서브 내비게이션 (MyPageNav)
+========================================================================== */
+.my_nav {
+  /*
+    스크롤을 내려도 메뉴가 따라오게 sticky로 고정합니다.
+    top 값은 헤더 높이 + 여백 — 헤더가 sticky라 그 아래에 붙어야 가려지지 않습니다.
+  */
+  position: sticky;
+  top: calc(var(--header-h) + 16px);
+  padding: 16px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.my_nav_title {
+  padding: 0 10px 12px;
+  font-size: 11.5px; font-weight: 800; letter-spacing: .08em;
+  color: var(--text-ghost);
+}
+
+.my_nav_list { display: flex; flex-direction: column; gap: 2px; }
+
+.my_nav_item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 11px 12px;
+  font-size: 13.5px; font-weight: 600; color: var(--text-faint);
+  border-radius: var(--radius-md);
+  transition: .14s ease;
+}
+.my_nav_item:hover { background: var(--surface-2); color: var(--text); }
+
+/* 현재 메뉴 — 배경 + 좌측 라임 막대로 위치를 분명히 표시합니다 */
+.my_nav_item.on {
+  position: relative;
+  background: var(--primary-dim);
+  color: var(--primary);
+}
+.my_nav_item.on::before {
+  content: '';
+  position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  width: 3px; height: 18px;
+  background: var(--primary); border-radius: 0 3px 3px 0;
+}
+
+.my_nav_icon { font-size: 15px; width: 18px; text-align: center; flex-shrink: 0; }
+
+
+/* ==========================================================================
+   3. 프로필 카드 (MyPage)
+========================================================================== */
+.my_profile { padding: 22px; }
+
+.my_profile_head { display: flex; align-items: flex-start; gap: 16px; }
+
+/* 프로필 이미지가 없는 회원이 대부분이라 닉네임 첫 글자를 아바타로 씁니다 */
+.my_avatar {
+  width: 62px; height: 62px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; font-weight: 800; line-height: 1;
+  color: var(--primary-text);
+  background: linear-gradient(135deg, var(--primary), var(--lime-600));
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+}
+
+.my_profile_name { font-size: 20px; }
+
+.my_profile_intro {
+  font-size: 13.5px; line-height: 1.65; color: var(--text-dim);
+  word-break: break-word;
+}
+/* 소개가 없을 때의 안내 문구 — 실제 소개와 구분되도록 흐리게 + 기울임 */
+.my_profile_intro.empty_intro { color: var(--text-ghost); font-style: italic; }
+
+/* 클라이밍 프로필 (구력 / 볼더링 / 리드 / 선호지역) */
+.my_profile_meta {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+  margin-top: 20px; padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+.my_meta_item {
+  display: flex; flex-direction: column; gap: 7px;
+  padding: 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.my_meta_item .lb { font-size: 11.5px; font-weight: 700; color: var(--text-ghost); }
+.my_meta_item strong { font-size: 14px; color: var(--text); }
+
+
+/* ==========================================================================
+   4. 요약 통계 4칸 (MyPage)
+========================================================================== */
+.my_summary {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+  margin-top: 24px;
+}
+.my_summary_card { padding: 18px; text-align: center; }
+.my_summary_icon { font-size: 22px; }
+.my_summary_label { margin-top: 8px; font-size: 12.5px; color: var(--text-faint); }
+.my_summary_value {
+  display: block; margin-top: 6px;
+  font-size: 22px; font-weight: 800; letter-spacing: -0.04em;
+  color: var(--text);
+  /* 값이 길어도(기록 없음) 카드가 깨지지 않게 */
+  word-break: keep-all;
+}
+.my_summary_sub { margin-top: 5px; font-size: 11.5px; color: var(--text-ghost); }
+
+
+/* ==========================================================================
+   5. AI 실력분석 배너 (MyPage)
+========================================================================== */
+.my_ai_banner {
+  display: flex; align-items: center; gap: 16px;
+  margin-top: 24px; padding: 20px 22px;
+  /* 라임 → 투명 그라데이션으로 "AI = 이 서비스의 특별 기능"임을 시각적으로 구분 */
+  background: linear-gradient(100deg, var(--primary-dim), transparent 62%), var(--surface);
+  border: 1px solid rgba(200, 255, 61, .28);
+  border-radius: var(--radius-lg);
+  transition: .16s ease;
+}
+.my_ai_banner:hover {
+  border-color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+.my_ai_icon { font-size: 30px; flex-shrink: 0; }
+.my_ai_title { display: block; font-size: 15.5px; color: var(--text); }
+.my_ai_desc { display: block; margin-top: 5px; font-size: 13px; color: var(--text-faint); }
+
+
+/* ==========================================================================
+   6. 최근 등반일지 미리보기 (MyPage)
+========================================================================== */
+.my_log_preview { display: flex; flex-direction: column; }
+.my_log_preview_item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 13px 0;
+  font-size: 13.5px;
+  border-bottom: 1px solid var(--border);
+}
+.my_log_preview_item:last-child { border-bottom: none; }
+.my_log_date { flex-shrink: 0; font-size: 12.5px; color: var(--text-faint); }
+
+
+/* ==========================================================================
+   7. 내 정보 수정 (ProfileEdit)
+========================================================================== */
+
+/* 우편번호 + 기본주소 + 상세주소를 한 덩어리로 */
+.my_addr { display: flex; flex-direction: column; gap: 8px; }
+.my_addr_zip { max-width: 170px; }
+
+/* 셀렉트 2개를 나란히 (볼더/리드, 시도/시군구) */
+.my_level_row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: end; }
+
+/* 회원 탈퇴 영역 — 실수로 누르지 않게 시각적으로 분리합니다 */
+.my_withdraw { border-color: rgba(245, 56, 74, .28); }
+
+
+/* ==========================================================================
+   8. 비밀번호 변경 (PasswordChange)
+========================================================================== */
+.my_pw_form { max-width: 720px; }
+
+/* 규칙 체크리스트 — 충족한 항목만 라임으로 바뀝니다 */
+.my_pw_rules {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin-top: 10px;
+}
+.my_pw_rules li {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 10px;
+  font-size: 12px; color: var(--text-ghost);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  transition: .15s;
+}
+.my_pw_rules li.ok {
+  color: var(--primary);
+  background: var(--primary-dim);
+  border-color: rgba(200, 255, 61, .3);
+}
+
+
+/* ==========================================================================
+   9. 내가 쓴 리뷰 (MyReview)
+========================================================================== */
+.my_review_list { display: flex; flex-direction: column; gap: 14px; }
+.my_review_item { padding: 18px 20px; }
+
+.my_review_head { display: flex; align-items: center; gap: 10px; }
+.my_review_gym { font-size: 15px; font-weight: 700; color: var(--text); }
+.my_review_gym:hover { color: var(--primary); text-decoration: underline; text-underline-offset: 3px; }
+
+.my_review_title { margin-top: 12px; font-size: 14px; font-weight: 700; color: var(--text); }
+
+.my_review_content {
+  margin-top: 8px;
+  font-size: 13.5px; line-height: 1.75; color: var(--text-dim);
+  /* 리뷰 본문의 줄바꿈을 그대로 살립니다 */
+  white-space: pre-line;
+  word-break: break-word;
+}
+
+/* 세부 점수 (시설/루트/청결) */
+.my_review_scores {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin-top: 12px;
+}
+.my_review_scores span {
+  padding: 4px 10px;
+  font-size: 11.5px; font-weight: 600; color: var(--text-faint);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+}
+
+.my_review_foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  margin-top: 14px; padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+
+/* ==========================================================================
+   10. 등반일지 통계 카드 (ClimbLogList)
+========================================================================== */
+.log_stat_grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+}
+.log_stat { padding: 18px; }
+.log_stat_label { font-size: 12.5px; font-weight: 600; color: var(--text-faint); }
+
+.log_stat_value {
+  display: block; margin-top: 8px;
+  font-size: 26px; font-weight: 800; letter-spacing: -0.05em;
+  line-height: 1.1; color: var(--text);
+}
+/* 단위(일/개/%)는 숫자보다 작게 — 숫자가 먼저 읽혀야 합니다 */
+.log_stat_value em {
+  margin-left: 3px;
+  font-size: 13px; font-weight: 700; font-style: normal;
+  color: var(--text-faint);
+}
+
+.log_stat_sub { margin-top: 6px; font-size: 11.5px; color: var(--text-ghost); }
+.log_stat_badge { margin-top: 10px; min-height: 26px; }
+
+/* 완등률 가로 바 */
+.log_rate_bar {
+  height: 6px; margin-top: 12px;
+  background: var(--surface-2);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+.log_rate_bar span {
+  display: block; height: 100%;
+  background: linear-gradient(90deg, var(--lime-600), var(--primary));
+  border-radius: inherit;
+  transition: width .4s ease;
+}
+
+
+/* ==========================================================================
+   11. 월별 추이 막대그래프 (ClimbLogList) — 순수 CSS 차트
+
+   구조
+     .log_chart              position: relative 인 차트 영역 (고정 높이)
+       .log_chart_grid       가로 눈금선 4개 (절대배치, 장식)
+       .log_chart_bars       막대들을 가로로 나열하는 flex
+         .log_bar_col        한 달 = 막대 1개 (숫자 / 막대 / 라벨)
+           .log_bar_track    막대가 자라는 100% 높이 트랙 (position: relative)
+             .log_bar_fill   실제 막대 — height를 인라인 %로 지정
+             .log_bar_dot    그 달의 최고 난이도 점 — bottom을 인라인 %로 지정
+========================================================================== */
+.log_chart { position: relative; height: 210px; padding: 8px 0 0; }
+
+/* 눈금선 — 높이를 4등분해 배경에 깔아 둡니다 */
+.log_chart_grid {
+  position: absolute; inset: 22px 0 26px;
+  display: flex; flex-direction: column; justify-content: space-between;
+  pointer-events: none;
+}
+.log_chart_grid span { display: block; height: 1px; background: var(--border); opacity: .7; }
+
+.log_chart_bars {
+  position: relative; height: 100%;
+  display: flex; align-items: flex-end; gap: 6px;
+}
+
+.log_bar_col {
+  flex: 1; min-width: 0; height: 100%;
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+}
+
+/* 막대 위의 건수 */
+.log_bar_cnt {
+  font-size: 11px; font-weight: 700; color: var(--text-faint);
+  font-family: var(--font-mono);
+}
+
+.log_bar_track {
+  position: relative;
+  flex: 1; width: 100%; min-height: 0;
+  display: flex; align-items: flex-end; justify-content: center;
+}
+
+.log_bar_fill {
+  width: 62%; max-width: 34px; min-height: 2px;
+  background: linear-gradient(180deg, var(--primary), var(--lime-700));
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  transition: height .35s ease;
+}
+.log_bar_col:hover .log_bar_fill { filter: brightness(1.12); }
+
+/*
+  최고 난이도 점.
+  bottom(%)이 곧 정규화 점수라 점이 위로 갈수록 어려운 문제를 오른 달입니다.
+  translateY(50%)로 점의 중심을 그 높이에 정확히 맞춥니다.
+*/
+.log_bar_dot {
+  position: absolute; left: 50%;
+  width: 9px; height: 9px;
+  transform: translate(-50%, 50%);
+  border-radius: 50%;
+  border: 2px solid var(--surface);
+  background: var(--text-faint);
+  z-index: 1;
+}
+
+.log_bar_label { font-size: 11px; color: var(--text-ghost); white-space: nowrap; }
+
+/* 난이도 구간 색 — .level_tag와 같은 색 체계를 점/바에도 적용합니다 */
+.log_bar_dot.lv1, .log_grade_fill.lv1 { background: #4CC98A; }
+.log_bar_dot.lv2, .log_grade_fill.lv2 { background: var(--sky-500); }
+.log_bar_dot.lv3, .log_grade_fill.lv3 { background: var(--amber-500); }
+.log_bar_dot.lv4, .log_grade_fill.lv4 { background: var(--accent); }
+.log_bar_dot.lv5, .log_grade_fill.lv5 { background: #A878FF; }
+
+
+/* ==========================================================================
+   12. 난이도별 완등 분포 (ClimbLogList) — 가로 막대
+========================================================================== */
+.log_grade_dist { display: flex; flex-direction: column; gap: 10px; }
+.log_grade_dist li {
+  display: grid;
+  /* 배지 / 막대(가변) / 수치 — 3열 고정으로 줄이 어긋나지 않게 합니다 */
+  grid-template-columns: 116px minmax(0, 1fr) 92px;
+  align-items: center; gap: 12px;
+}
+
+.log_grade_badge { display: flex; align-items: center; }
+
+.log_grade_bar {
+  display: block; height: 10px;
+  background: var(--surface-2);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+.log_grade_fill {
+  display: block; height: 100%;
+  border-radius: inherit;
+  transition: width .35s ease;
+}
+
+.log_grade_cnt { font-size: 12.5px; text-align: right; white-space: nowrap; }
+.log_grade_cnt strong { color: var(--primary); }
+.log_grade_cnt em { font-style: normal; font-size: 11.5px; }
+
+
+/* ==========================================================================
+   13. 기간 필터 + 일지 목록 (ClimbLogList)
+========================================================================== */
+.log_period {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 12px;
+  padding-bottom: 16px; margin-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+.log_period_range { display: flex; align-items: center; gap: 8px; }
+.log_period_range .form_input { min-height: 36px; width: auto; font-size: 12.5px; }
+
+.log_list { display: flex; flex-direction: column; }
+
+.log_item {
+  display: flex; align-items: flex-start; gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+}
+.log_item:last-child { border-bottom: none; }
+
+/* 좌측 날짜 블록 */
+.log_item_date {
+  width: 62px; flex-shrink: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 8px 0;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.log_item_date strong { font-size: 14px; color: var(--text); }
+
+.log_item_body { flex: 1; min-width: 0; }
+.log_item_gym { font-size: 14.5px; }
+.log_item_gym a:hover { color: var(--primary); text-decoration: underline; text-underline-offset: 3px; }
+
+.log_item_meta {
+  display: flex; flex-wrap: wrap; gap: 14px;
+  margin-top: 9px;
+  font-size: 12.5px; color: var(--text-faint);
+}
+.log_item_meta strong { color: var(--text-dim); }
+
+/* 컨디션 점 (●●●○○) */
+.log_condition {
+  margin-left: 6px;
+  font-size: 10px; font-style: normal; letter-spacing: 1px;
+  color: var(--primary);
+}
+
+.log_item_memo {
+  margin-top: 10px; padding: 10px 12px;
+  font-size: 13px; line-height: 1.7; color: var(--text-dim);
+  background: var(--bg-elevated);
+  border-left: 2px solid var(--border-strong);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  white-space: pre-line;
+  word-break: break-word;
+}
+
+.log_item_actions { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+
+
+/* ==========================================================================
+   14. 등반일지 작성/수정 (ClimbLogForm)
+========================================================================== */
+.log_form { max-width: 820px; }
+
+/* date 인풋은 내용이 짧아 100%로 늘리면 허전합니다 */
+.log_date_input { max-width: 210px; }
+
+/* ---------- 암장 선택 ---------- */
+.log_gym_mode { margin-bottom: 10px; }
+
+.log_gym_pick { display: flex; gap: 8px; }
+.log_gym_pick .form_input { flex: 1; min-width: 0; cursor: pointer; }
+
+/* 모달 안의 검색창 */
+.log_gym_search { display: flex; gap: 8px; }
+.log_gym_search .form_input { flex: 1; min-width: 0; }
+
+.log_gym_result {
+  display: flex; flex-direction: column; gap: 6px;
+  max-height: 320px; overflow-y: auto;
+}
+.log_gym_item {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  width: 100%; padding: 11px 13px;
+  text-align: left;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  transition: .14s;
+}
+.log_gym_item:hover { border-color: var(--primary); background: var(--primary-dim); }
+.log_gym_item strong { font-size: 13.5px; color: var(--text); }
+
+/* ---------- 등반 유형 라디오 ---------- */
+.log_type_group { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/*
+  input[type=radio]는 .hidden으로 숨기고 label에 스타일을 입힙니다.
+  :focus-visible을 label까지 전달해 키보드 사용자도 선택 위치를 볼 수 있게 합니다.
+*/
+.log_type_item {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 10px 16px;
+  font-size: 13.5px; font-weight: 600; color: var(--text-dim);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  cursor: pointer; transition: .15s ease;
+}
+.log_type_item:hover { border-color: var(--text-ghost); color: var(--text); }
+.log_type_item.on {
+  color: var(--primary);
+  background: var(--primary-dim);
+  border-color: var(--primary);
+}
+.log_type_item:has(input:focus-visible) { outline: 2px solid var(--primary); outline-offset: 2px; }
+.log_type_icon { font-size: 15px; }
+
+/* ---------- 난이도 ---------- */
+.log_grade_row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+.log_grade_preview {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
+  margin-top: 12px; padding: 12px 14px;
+  background: var(--bg-elevated);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+}
+.log_grade_score { font-size: 12px; color: var(--text-faint); }
+
+/* 0~100 점수 게이지 */
+.log_grade_gauge {
+  flex: 1; min-width: 120px; height: 8px;
+  background: var(--surface-2);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+.log_grade_gauge_fill {
+  display: block; height: 100%;
+  background: var(--text-faint);
+  border-radius: inherit;
+  transition: width .3s ease;
+}
+.log_grade_gauge_fill.lv1 { background: #4CC98A; }
+.log_grade_gauge_fill.lv2 { background: var(--sky-500); }
+.log_grade_gauge_fill.lv3 { background: var(--amber-500); }
+.log_grade_gauge_fill.lv4 { background: var(--accent); }
+.log_grade_gauge_fill.lv5 { background: #A878FF; }
+
+/* ---------- 시도 / 완등 / 시간 ---------- */
+.log_num_row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.log_num_field { display: flex; flex-direction: column; gap: 6px; }
+.log_num_label { font-size: 12px; font-weight: 600; color: var(--text-faint); }
+
+/* 인풋 오른쪽에 단위를 붙여 "회/개/분"을 눈으로 확인하며 입력하게 합니다 */
+.log_num_input { position: relative; }
+.log_num_input .form_input { padding-right: 38px; text-align: right; }
+.log_num_input .unit {
+  position: absolute; top: 50%; right: 13px; transform: translateY(-50%);
+  font-size: 12.5px; color: var(--text-faint); pointer-events: none;
+}
+
+/* ---------- 컨디션 ---------- */
+.log_cond_group { display: flex; flex-wrap: wrap; gap: 8px; }
+.log_cond_item {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  min-width: 74px; padding: 9px 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  cursor: pointer; transition: .15s ease;
+}
+.log_cond_item:hover { border-color: var(--text-ghost); }
+.log_cond_item.on { background: var(--primary-dim); border-color: var(--primary); }
+.log_cond_item:has(input:focus-visible) { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+.log_cond_dots { font-size: 10px; letter-spacing: 1px; color: var(--text-ghost); }
+.log_cond_item.on .log_cond_dots { color: var(--primary); }
+.log_cond_label { font-size: 12px; font-weight: 600; color: var(--text-faint); }
+.log_cond_item.on .log_cond_label { color: var(--primary); }
+
+.log_memo { min-height: 120px; }
+
+
+/* ==========================================================================
+   15. AI 실력 분석 (LevelReport)
+========================================================================== */
+
+/* ---------- AI 서버 오프라인 안내 ---------- */
+.report_offline { text-align: center; padding: 40px 24px; }
+.report_offline_icon { font-size: 40px; opacity: .7; }
+.report_offline_title { margin-top: 14px; font-size: 17px; }
+.report_offline_msg { margin-top: 8px; font-size: 13.5px; color: var(--text-faint); }
+
+.report_offline_guide { margin-top: 22px; text-align: left; }
+
+/* 실행 명령어 — 복사해서 붙여넣기 좋게 고정폭 글꼴 + 블록 */
+.report_cmd {
+  display: block; margin-top: 10px; padding: 10px 12px;
+  font-size: 12.5px; color: var(--primary);
+  background: var(--n-950);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  user-select: all;   /* 한 번 클릭으로 전체 선택 */
+  overflow-x: auto;
+}
+
+/* ---------- 추정 레벨 히어로 ---------- */
+.report_hero {
+  padding: 26px 24px;
+  background:
+    radial-gradient(900px 200px at 0% 0%, var(--primary-dim), transparent 70%),
+    var(--surface);
+  border-color: rgba(200, 255, 61, .24);
+}
+.report_hero_main {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 14px;
+}
+.report_hero_label {
+  width: 100%;
+  font-size: 12px; font-weight: 700; letter-spacing: .06em;
+  color: var(--text-ghost);
+}
+.report_level {
+  font-size: 34px; font-weight: 800; letter-spacing: -0.05em; line-height: 1.15;
+  color: var(--primary);
+}
+
+.report_badges { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+
+/* 추세 배지 — 상승/유지/하락을 색으로 구분 */
+.report_trend {
+  display: inline-flex; align-items: center; gap: 4px;
+  height: 26px; padding: 0 11px;
+  font-size: 12px; font-weight: 700;
+  border-radius: var(--radius-full);
+  background: var(--surface-2); color: var(--text-dim);
+}
+.report_trend.up   { background: var(--primary-dim); color: var(--primary); }
+.report_trend.flat { background: var(--info-dim);    color: var(--sky-200); }
+.report_trend.down { background: var(--warning-dim); color: var(--amber-200); }
+
+/* 난이도 구간 게이지 */
+.report_hero_gauge { margin-top: 22px; }
+.report_gauge_track {
+  height: 10px;
+  background: var(--surface-2);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+.report_gauge_fill {
+  display: block; height: 100%;
+  background: var(--text-faint);
+  border-radius: inherit;
+  transition: width .45s ease;
+}
+.report_gauge_fill.lv1 { background: #4CC98A; }
+.report_gauge_fill.lv2 { background: var(--sky-500); }
+.report_gauge_fill.lv3 { background: var(--amber-500); }
+.report_gauge_fill.lv4 { background: var(--accent); }
+.report_gauge_fill.lv5 { background: #A878FF; }
+
+/* 게이지 아래 5구간 눈금 라벨 */
+.report_gauge_scale {
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  margin-top: 7px;
+  font-size: 11px; color: var(--text-ghost); text-align: center;
+}
+
+/* ---------- 요약 통계 카드 ---------- */
+.report_stats {
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px;
+  margin-top: 24px;
+}
+.report_stat { padding: 16px; }
+.report_stat_icon { font-size: 18px; }
+.report_stat_label { margin-top: 6px; font-size: 12px; color: var(--text-faint); }
+.report_stat_value {
+  display: block; margin-top: 5px;
+  font-size: 20px; font-weight: 800; letter-spacing: -0.04em;
+  color: var(--text); word-break: keep-all;
+}
+.report_stat_sub { margin-top: 5px; font-size: 11px; color: var(--text-ghost); }
+
+.report_stat_bar {
+  height: 5px; margin-top: 10px;
+  background: var(--surface-2);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+.report_stat_bar span {
+  display: block; height: 100%;
+  background: var(--primary);
+  border-radius: inherit;
+  transition: width .4s ease;
+}
+
+/* ---------- 강점 / 약점 2단 ---------- */
+.report_cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.report_col { min-width: 0; }
+
+.report_list { display: flex; flex-direction: column; gap: 10px; }
+.report_list li {
+  position: relative;
+  padding: 10px 12px 10px 30px;
+  font-size: 13.5px; line-height: 1.65; color: var(--text-dim);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-md);
+  word-break: break-word;
+}
+/* 목록 앞의 기호를 ::before로 그리면 텍스트 복사에 섞이지 않습니다 */
+.report_list li::before {
+  position: absolute; left: 11px; top: 10px;
+  font-size: 12px; font-weight: 800;
+}
+.report_list.good li::before { content: '✓'; color: var(--primary); }
+.report_list.bad  li::before { content: '!'; color: var(--accent); }
+
+/* ---------- 다음 목표 강조 카드 ---------- */
+.report_goal {
+  display: flex; align-items: center; gap: 16px;
+  padding: 20px 22px;
+  background: linear-gradient(100deg, var(--accent-dim), transparent 64%), var(--surface);
+  border: 1px solid rgba(255, 107, 53, .3);
+  border-radius: var(--radius-lg);
+}
+.report_goal_icon { font-size: 28px; flex-shrink: 0; }
+.report_goal_label { font-size: 11.5px; font-weight: 700; letter-spacing: .06em; color: var(--orange-300); }
+.report_goal_text {
+  display: block; margin-top: 5px;
+  font-size: 16px; line-height: 1.5; color: var(--text);
+  word-break: break-word;
+}
+
+/* ---------- 조언 ---------- */
+.report_advice {
+  font-size: 14px; line-height: 1.85; color: var(--text-dim);
+  /* 서버가 \n으로 문단을 나눠 보내도 그대로 살아납니다 */
+  white-space: pre-line;
+  word-break: break-word;
+}
+
+/* ---------- 추천 훈련 체크리스트 ---------- */
+.report_training { display: flex; flex-direction: column; gap: 8px; }
+
+.report_train_item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 12px 14px;
+  font-size: 13.5px; line-height: 1.6; color: var(--text-dim);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer; transition: .15s ease;
+}
+.report_train_item:hover { border-color: var(--border-strong); }
+.report_train_item input[type=checkbox] {
+  width: 17px; height: 17px; margin-top: 2px;
+  accent-color: var(--primary); cursor: pointer; flex-shrink: 0;
+}
+
+.report_train_no {
+  width: 20px; flex-shrink: 0;
+  font-size: 12px; font-weight: 700; color: var(--text-ghost);
+}
+.report_train_text { flex: 1; min-width: 0; word-break: break-word; }
+
+/* 완료한 항목 — 취소선으로 "끝낸 일"임을 표시 */
+.report_train_item.done { background: var(--primary-dim); border-color: rgba(200, 255, 61, .28); }
+.report_train_item.done .report_train_text { color: var(--text-ghost); text-decoration: line-through; }
+
+/* ---------- 맞춤 암장 추천 ---------- */
+.report_rec { display: flex; flex-direction: column; gap: 14px; }
+
+.report_rec_item { display: flex; align-items: flex-start; gap: 12px; }
+
+/* 순위 번호 */
+.report_rec_rank {
+  width: 26px; height: 26px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 800;
+  color: var(--primary-text);
+  background: var(--primary);
+  border-radius: var(--radius-full);
+}
+/* 3위까지만 라임, 나머지는 차분하게 — 상위 추천이 먼저 눈에 들어오게 합니다 */
+.report_rec_item:nth-child(n + 4) .report_rec_rank {
+  background: var(--surface-2); color: var(--text-faint);
+}
+
+.report_rec_body { flex: 1; min-width: 0; }
+.report_rec_head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+}
+.report_rec_name { font-size: 14.5px; font-weight: 700; color: var(--text); }
+.report_rec_name:hover { color: var(--primary); text-decoration: underline; text-underline-offset: 3px; }
+.report_rec_score { font-size: 12.5px; font-weight: 700; color: var(--primary); flex-shrink: 0; }
+
+/* 추천 점수 프로그레스 바 */
+.report_rec_bar {
+  height: 8px; margin-top: 8px;
+  background: var(--surface-2);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+.report_rec_fill {
+  display: block; height: 100%;
+  background: linear-gradient(90deg, var(--lime-700), var(--primary));
+  border-radius: inherit;
+  transition: width .45s ease;
+}
+
+.report_rec_reason {
+  margin-top: 8px;
+  font-size: 12.5px; line-height: 1.6; color: var(--text-faint);
+  word-break: break-word;
+}
+
+
+/* ==========================================================================
+   16. 주문 내역 (MyOrder)
+========================================================================== */
+.order_list { display: flex; flex-direction: column; gap: 14px; }
+
+.order_item { padding: 0; overflow: hidden; }
+
+/* 취소/환불된 주문은 살짝 흐리게 — 목록에서 유효한 주문이 먼저 보이게 합니다 */
+.order_item.is_canceled { opacity: .72; }
+
+.order_item_head {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 10px;
+  padding: 13px 20px;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+}
+.order_item_when { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.order_item_when strong { font-size: 13px; color: var(--text); }
+
+.order_code {
+  padding: 3px 8px;
+  font-size: 11.5px; color: var(--text-faint);
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+}
+
+.order_item_states { display: flex; align-items: center; gap: 6px; }
+
+.order_item_body {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 18px 20px;
+}
+
+.order_name { font-size: 15px; font-weight: 700; color: var(--text); word-break: break-word; }
+.order_name:hover { color: var(--primary); text-decoration: underline; text-underline-offset: 3px; }
+
+.order_item_sub { margin-top: 6px; font-size: 12.5px; color: var(--text-faint); }
+
+.order_item_right {
+  display: flex; align-items: center; gap: 14px; flex-shrink: 0;
+}
+.order_price { white-space: nowrap; }
+
+
+/* ==========================================================================
+   17. 주문 상세 (OrderDetail)
+========================================================================== */
+.order_detail_head { padding: 22px; }
+
+.order_detail_top {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  flex-wrap: wrap; gap: 14px;
+}
+.order_detail_label { font-size: 11.5px; font-weight: 700; letter-spacing: .05em; color: var(--text-ghost); }
+.order_detail_code { display: block; margin-top: 6px; font-size: 19px; font-weight: 800; color: var(--text); }
+.order_detail_states { display: flex; align-items: center; gap: 6px; }
+
+/* ---------- 배송 진행 4단계 (CSS로만 구현) ----------
+   각 단계의 점을 잇는 선은 ::before로 그립니다.
+   첫 항목에는 선이 없어야 하므로 :first-child에서 숨깁니다. */
+.order_steps {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  margin-top: 24px;
+}
+.order_step {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  text-align: center;
+}
+.order_step::before {
+  content: '';
+  position: absolute; top: 6px; right: 50%; left: -50%;
+  height: 2px; background: var(--surface-2);
+}
+.order_step:first-child::before { display: none; }
+/* 지나온 단계까지는 선도 라임으로 채웁니다 */
+.order_step.on::before { background: var(--primary); }
+
+.order_step_dot {
+  position: relative; z-index: 1;
+  width: 14px; height: 14px;
+  background: var(--surface-2);
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+}
+.order_step.on .order_step_dot { background: var(--primary); }
+
+/* 현재 단계는 링을 둘러 강조 */
+.order_step.current .order_step_dot {
+  box-shadow: 0 0 0 4px var(--primary-dim);
+}
+
+.order_step_label { font-size: 11.5px; color: var(--text-ghost); }
+.order_step.on .order_step_label { color: var(--text-dim); }
+.order_step.current .order_step_label { color: var(--primary); font-weight: 700; }
+
+/* ---------- 주문 상품 표 ---------- */
+.order_items .col_product { min-width: 260px; }
+.order_items .col_opt { width: 110px; }
+.order_items .col_qty { width: 80px; }
+.order_items .col_price { width: 130px; text-align: right; }
+.order_items td.col_price { text-align: right; }
+
+.order_product { display: flex; align-items: center; gap: 12px; }
+
+.order_product_thumb {
+  position: relative;
+  width: 62px; height: 62px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.order_product_thumb img { width: 100%; height: 100%; object-fit: cover; }
+.order_product_thumb .no_img { font-size: 20px; opacity: .5; }
+
+.order_product_name { font-size: 13.5px; font-weight: 600; color: var(--text); }
+.order_product_name:hover { color: var(--primary); text-decoration: underline; text-underline-offset: 3px; }
+
+/* ---------- 결제 정보 / 배송지 2단 ---------- */
+.order_bottom { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+
+/* info_row의 값을 오른쪽 정렬하려면 flex 자식에 text-align이 먹어야 해서 보조 규칙을 둡니다 */
+.order_bottom .info_row .val.a-r { text-align: right; }
+
+.order_total {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin-top: 16px; padding: 16px;
+  font-size: 13.5px; font-weight: 700; color: var(--text-dim);
+  background: var(--primary-dim);
+  border: 1px solid rgba(200, 255, 61, .25);
+  border-radius: var(--radius-md);
+}
+.order_total .price { font-size: 20px; color: var(--primary); }
+
+.order_actions { margin-top: 28px; }
+
+
+/* ==========================================================================
+   18. 반응형
+
+   [원칙] 좁아질수록 "2단 → 1단", "가로 나열 → 가로 스크롤"로 바꿉니다.
+   특히 서브 내비는 세로로 7줄 쌓이면 본문이 화면 밖으로 밀려나므로
+   모바일에서는 가로 스크롤 바로 전환합니다.
+========================================================================== */
+
+/* ---------- 태블릿 ---------- */
+@media (max-width: 1024px) {
+  .my_layout { grid-template-columns: 1fr; gap: 18px; }
+
+  /* 내비를 상단 가로 바로 전환 */
+  .my_nav { position: static; padding: 10px; }
+  .my_nav_title { display: none; }
+  .my_nav_list {
+    flex-direction: row;
+    gap: 6px;
+    overflow-x: auto;
+    /* iOS에서 손가락 스크롤이 부드럽게 멈추도록 */
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .my_nav_list::-webkit-scrollbar { display: none; }
+  .my_nav_item { white-space: nowrap; padding: 9px 13px; }
+  .my_nav_item.on::before { display: none; }
+
+  .my_profile_meta { grid-template-columns: repeat(2, 1fr); }
+  .report_stats { grid-template-columns: repeat(3, 1fr); }
+  .order_items .col_product { min-width: 200px; }
+}
+
+/* ---------- 좁은 태블릿 / 큰 폰 ---------- */
+@media (max-width: 860px) {
+  .my_summary { grid-template-columns: repeat(2, 1fr); }
+  .log_stat_grid { grid-template-columns: repeat(2, 1fr); }
+  .order_bottom { grid-template-columns: 1fr; }
+}
+
+/* ---------- 모바일 ---------- */
+@media (max-width: 640px) {
+  .my_profile_head { flex-wrap: wrap; }
+  .my_avatar { width: 52px; height: 52px; font-size: 22px; }
+
+  .my_ai_banner { flex-wrap: wrap; gap: 12px; padding: 16px; }
+
+  .report_cols { grid-template-columns: 1fr; }
+  .report_stats { grid-template-columns: repeat(2, 1fr); }
+  .report_level { font-size: 28px; }
+  .report_goal { flex-wrap: wrap; }
+
+  /* 폼: 가로 배치를 세로로 (common.css의 .form_page가 이미 640px에서 세로 전환) */
+  .log_grade_row { grid-template-columns: 1fr; }
+  .log_num_row { grid-template-columns: 1fr; }
+  .my_level_row { grid-template-columns: 1fr; }
+  .my_addr_zip { max-width: none; }
+  .log_date_input { max-width: none; }
+
+  /* 컨디션 5칸은 좁은 화면에서 넘치므로 가로 스크롤로 */
+  .log_cond_group { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; }
+  .log_cond_item { flex-shrink: 0; }
+
+  /* 기간 필터 */
+  .log_period_range { flex-wrap: wrap; }
+  .log_period_range .form_input { flex: 1; min-width: 120px; }
+
+  /* 일지 목록: 수정/삭제 버튼을 가로로 내려 카드 폭을 확보 */
+  .log_item { flex-wrap: wrap; gap: 12px; }
+  .log_item_date { width: 54px; }
+  .log_item_actions { flex-direction: row; width: 100%; justify-content: flex-end; }
+
+  /* 난이도 분포: 3열 그리드는 좁아서 배지/막대 2줄 구성으로 */
+  .log_grade_dist li { grid-template-columns: 96px minmax(0, 1fr); }
+  .log_grade_cnt { grid-column: 1 / -1; text-align: left; }
+
+  /* 월별 차트는 높이를 줄이고 라벨을 작게 */
+  .log_chart { height: 170px; }
+  .log_bar_label { font-size: 10px; }
+
+  /* 주문 목록 */
+  .order_item_body { flex-direction: column; align-items: stretch; gap: 12px; }
+  .order_item_right { justify-content: space-between; }
+
+  /* 주문 상세 */
+  .order_detail_code { font-size: 16px; }
+  .order_step_label { font-size: 10.5px; }
+  .order_product_thumb { width: 50px; height: 50px; }
+  .order_actions { flex-direction: column-reverse; align-items: stretch; }
+  .order_actions .btn { width: 100%; }
+}
+
+/* ---------- 아주 좁은 화면 ---------- */
+@media (max-width: 420px) {
+  .my_summary { grid-template-columns: 1fr; }
+  .log_stat_grid { grid-template-columns: 1fr; }
+  .report_stats { grid-template-columns: 1fr; }
+  .my_profile_meta { grid-template-columns: 1fr; }
+}
